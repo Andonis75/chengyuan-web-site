@@ -1,0 +1,38 @@
+<view class="container" wx:if="{{!loading && insights}}">
+  <view class="card recommendation-card">
+    <view class="recommendation-title">AI 综合推荐</view>
+    <view class="recommendation-content">{{insights.recommendation}}</view>
+  </view>
+
+  <view class="section-title">产地综合排行</view>
+  <view class="card ranking-card">
+    <view class="ranking-item" wx:for="{{insights.topOrigins}}" wx:key="code">
+      <view class="rank-number {{index < 3 ? 'top-' + (index + 1) : ''}}">{{index + 1}}</view>
+      <view class="rank-info">
+        <view class="rank-name">{{item.originName}}</view>
+        <view class="rank-score-bar">
+          <view class="score-fill" style="width: {{item.score}}%"></view>
+        </view>
+      </view>
+      <view class="rank-score">{{item.score}}分</view>
+    </view>
+  </view>
+
+  <view class="section-title">整体质量分布</view>
+  <view class="card distribution-card">
+    <view class="dist-item" wx:for="{{insights.qualityBands}}" wx:key="label">
+      <view class="dist-label">{{item.level}}</view>
+      <view class="dist-bar-wrap">
+        <view
+          class="dist-bar {{item.level === '优' ? 'excellent' : (item.level === '良' ? 'good' : 'normal')}}"
+          style="width: {{item.percentage}}%"
+        ></view>
+      </view>
+      <view class="dist-value">{{item.percentage}}%</view>
+    </view>
+  </view>
+</view>
+
+<view class="loading-state" wx:if="{{loading}}">
+  <text>加载中...</text>
+</view>

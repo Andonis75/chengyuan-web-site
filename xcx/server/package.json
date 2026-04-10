@@ -1,0 +1,42 @@
+{
+  "name": "chengyuan-xcx-server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "prisma:schema:sqlite": "node scripts/prisma-target.mjs sqlite format",
+    "prisma:schema:mysql": "node scripts/prisma-target.mjs mysql format",
+    "prisma:generate": "node scripts/prisma-target.mjs sqlite generate",
+    "prisma:generate:mysql": "node scripts/prisma-target.mjs mysql generate",
+    "db:push": "node scripts/prisma-target.mjs sqlite db push",
+    "db:push:mysql": "node scripts/prisma-target.mjs mysql db push",
+    "db:seed": "node scripts/seed-target.mjs sqlite",
+    "db:seed:mysql": "node scripts/seed-target.mjs mysql",
+    "setup": "npm run db:push && npm run db:seed",
+    "setup:mysql": "npm run db:push:mysql && npm run db:seed:mysql"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.7.0",
+    "@types/multer": "^2.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "multer": "^2.1.1",
+    "pdfkit": "^0.17.2",
+    "zod": "^3.25.28"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.18",
+    "@types/express": "^5.0.1",
+    "@types/pdfkit": "^0.17.3",
+    "@types/node": "^22.15.2",
+    "prisma": "^6.7.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

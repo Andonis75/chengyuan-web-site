@@ -1,0 +1,169 @@
+// Default SQLite schema for local development.
+// Cross-database changes should be made in prisma/schema.template.prisma.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum SampleStatus {
+  NORMAL
+  WARNING
+  REVIEWED
+}
+
+enum TaskType {
+  SINGLE
+  COMPARE
+}
+
+enum TaskStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum ReportType {
+  JSON
+  PDF
+}
+
+enum ModelProvider {
+  MOCK
+  PYTHON_HTTP
+}
+
+model User {
+  id        String         @id @default(cuid())
+  openId    String         @unique
+  unionId   String?
+  nickname  String?
+  avatarUrl String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  tasks     AnalysisTask[]
+  reports   ReportFile[]
+}
+
+model Origin {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  name          String
+  region        String
+  harvestSeason String?
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  samples       Sample[]
+}
+
+model Sample {
+  id              String           @id @default(cuid())
+  sampleCode      String           @unique
+  externalCode    String?
+  category        String?
+  status          SampleStatus     @default(NORMAL)
+  ssc             Float
+  ta              Float
+  ratio           Float
+  vc              Float
+  collectedAt     DateTime
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  originId        String
+  origin          Origin           @relation(fields: [originId], references: [id])
+  analysisTasks   AnalysisTask[]   @relation("PrimarySampleTasks")
+  compareTasks    AnalysisTask[]   @relation("CompareSampleTasks")
+  analysisResults AnalysisResult[]
+  spectralFiles   SpectralFile[]
+
+  @@index([originId])
+  @@index([status])
+  @@index([collectedAt])
+}
+
+model SpectralFile {
+  id              String   @id @default(cuid())
+  sampleId        String
+  fileName        String
+  originalName    String
+  mimeType        String
+  fileSize        Int
+  storagePath     String
+  wavelengthStart Float?
+  wavelengthEnd   Float?
+  bandCount       Int?
+  uploadedAt      DateTime @default(now())
+  sample          Sample   @relation(fields: [sampleId], references: [id])
+
+  @@index([sampleId])
+  @@index([uploadedAt])
+}
+
+model AnalysisTask {
+  id              String         @id @default(cuid())
+  taskNo          String         @unique
+  taskType        TaskType       @default(SINGLE)
+  taskStatus      TaskStatus     @default(PENDING)
+  progress        Int            @default(0)
+  errorMessage    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  userId          String?
+  sampleId        String
+  compareSampleId String?
+  user            User?          @relation(fields: [userId], references: [id])
+  sample          Sample         @relation("PrimarySampleTasks", fields: [sampleId], references: [id])
+  compareSample   Sample?        @relation("CompareSampleTasks", fields: [compareSampleId], references: [id])
+  result          AnalysisResult?
+  reports         ReportFile[]
+
+  @@index([userId])
+  @@index([sampleId])
+  @@index([compareSampleId])
+  @@index([taskStatus])
+  @@index([createdAt])
+}
+
+model AnalysisResult {
+  id               String       @id @default(cuid())
+  taskId           String       @unique
+  sampleId         String
+  predictedOrigin  String
+  confidence       Float
+  predictedSsc     Float
+  predictedTa      Float
+  predictedRatio   Float
+  predictedVc      Float
+  aiSummary        String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  task             AnalysisTask @relation(fields: [taskId], references: [id])
+  sample           Sample       @relation(fields: [sampleId], references: [id])
+
+  @@index([sampleId])
+  @@index([createdAt])
+}
+
+model ReportFile {
+  id            String       @id @default(cuid())
+  reportType    ReportType   @default(JSON)
+  fileName      String
+  content       String
+  createdAt     DateTime     @default(now())
+  taskId        String
+  generatedById String?
+  task          AnalysisTask @relation(fields: [taskId], references: [id])
+  generatedBy   User?        @relation(fields: [generatedById], references: [id])
+
+  @@index([taskId])
+  @@index([generatedById])
+  @@index([createdAt])
+}

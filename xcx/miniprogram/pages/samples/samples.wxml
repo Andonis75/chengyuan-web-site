@@ -1,0 +1,79 @@
+<view class="container">
+  <!-- 搜索与筛选栏 -->
+  <view class="filter-bar">
+    <view class="search-box">
+      <icon type="search" size="16" color="#999" />
+      <input 
+        class="search-input" 
+        placeholder="搜索样本编号" 
+        value="{{keyword}}"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+        confirm-type="search"
+      />
+    </view>
+    <picker 
+      class="origin-picker" 
+      mode="selector" 
+      range="{{origins}}" 
+      range-key="name"
+      bindchange="onOriginChange"
+    >
+      <view class="picker-inner">
+        <text>{{selectedOriginName}}</text>
+        <text class="picker-icon">▼</text>
+      </view>
+    </picker>
+  </view>
+
+  <!-- 样本列表 -->
+  <view class="sample-list">
+    <view 
+      class="card sample-card" 
+      wx:for="{{samples}}" 
+      wx:key="sampleCode"
+      data-code="{{item.sampleCode}}"
+      bindtap="goToDetail"
+    >
+      <view class="sample-header">
+        <view class="sample-title">
+          <text class="sample-code">{{item.sampleCode}}</text>
+          <text class="sample-origin">{{item.originName}}</text>
+        </view>
+        <view class="sample-status {{item.status === 'WARNING' ? 'warning' : 'normal'}}">
+          {{item.status === 'WARNING' ? '异常' : '正常'}}
+        </view>
+      </view>
+      
+      <view class="sample-body">
+        <view class="metric-item">
+          <text class="metric-label">糖度(SSC)</text>
+          <text class="metric-value">{{item.ssc}}</text>
+        </view>
+        <view class="metric-item">
+          <text class="metric-label">酸度(TA)</text>
+          <text class="metric-value">{{item.ta}}</text>
+        </view>
+        <view class="metric-item">
+          <text class="metric-label">分析次数</text>
+          <text class="metric-value">{{item.analysisCount || 0}}</text>
+        </view>
+      </view>
+      
+      <view class="sample-footer">
+        <text class="sample-date">采样时间: {{item.formattedDate}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+  <view class="empty-state" wx:elif="{{samples.length === 0}}">
+    <text>暂无样本数据</text>
+  </view>
+  <view class="no-more" wx:elif="{{!hasMore && samples.length > 0}}">
+    <text>没有更多了</text>
+  </view>
+</view>

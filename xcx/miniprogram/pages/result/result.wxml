@@ -1,0 +1,63 @@
+<view class="container" wx:if="{{!loading && result}}">
+  <view class="card summary-card">
+    <view class="summary-header">
+      <view class="summary-title">AI 分析结论</view>
+      <view class="provider-tag">橙源智鉴模型</view>
+    </view>
+    <view class="summary-content">{{result.aiSummary}}</view>
+  </view>
+
+  <view class="section-title">产地预测</view>
+  <view class="card origin-card">
+    <view class="origin-result">
+      <view class="origin-name">{{result.predictedOrigin || '未知产地'}}</view>
+      <view class="confidence-wrap">
+        <text class="confidence-label">置信度</text>
+        <text class="confidence-value">{{result.confidencePercent}}%</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">综合评级</view>
+  <view class="card grade-card" wx:if="{{reportView}}">
+    <view class="grade-top">
+      <view>
+        <view class="grade-level">{{reportView.grade.level}}</view>
+        <view class="grade-label">{{reportView.grade.label}}</view>
+      </view>
+      <view class="grade-score">{{reportView.grade.score}} 分</view>
+    </view>
+    <view class="grade-summary">{{reportView.grade.summary}}</view>
+  </view>
+
+  <view class="section-title">品质指标预测</view>
+  <view class="card metrics-card" wx:if="{{reportView}}">
+    <view class="metric-grid">
+      <view class="metric-item" wx:for="{{reportView.metrics}}" wx:key="key">
+        <view class="metric-value">{{item.displayValue}}</view>
+        <view class="metric-label">{{item.label}}</view>
+        <view class="metric-range">推荐 {{item.recommendedRange}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">关联样本</view>
+  <view class="card sample-card">
+    <view class="sample-item">
+      <text class="sample-label">主样本</text>
+      <text class="sample-value">{{result.sample.sampleCode}}</text>
+    </view>
+    <view class="sample-item" wx:if="{{result.compareSample}}">
+      <text class="sample-label">对比样本</text>
+      <text class="sample-value">{{result.compareSample.sampleCode}}</text>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <button class="btn-primary" bindtap="goToReport">查看完整报告</button>
+  </view>
+</view>
+
+<view class="loading-state" wx:if="{{loading}}">
+  <text>加载中...</text>
+</view>

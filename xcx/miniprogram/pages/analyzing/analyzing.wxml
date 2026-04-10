@@ -1,0 +1,43 @@
+<view class="container analyzing-page">
+  <view class="card hero-card" wx:if="{{!failed}}">
+    <view class="hero-top">
+      <view>
+        <view class="hero-title">正在分析样本</view>
+        <view class="hero-subtitle">{{sampleCode || '--'}} · {{taskType === 'COMPARE' ? '对比分析' : '单样本分析'}}</view>
+      </view>
+      <view class="hero-tag">AI 分析中</view>
+    </view>
+
+    <view class="animation-wrap">
+      <view class="pulse pulse-outer"></view>
+      <view class="pulse pulse-inner"></view>
+      <view class="core-orb">橙</view>
+    </view>
+
+    <view class="progress-row">
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{progress}}%;"></view>
+      </view>
+      <view class="progress-value">{{progress}}%</view>
+    </view>
+
+    <view class="status-text">{{stepText}}</view>
+  </view>
+
+  <view class="card fail-card" wx:if="{{failed}}">
+    <view class="fail-title">分析未完成</view>
+    <view class="fail-text">{{errorMessage}}</view>
+    <button class="retry-btn" bindtap="goBack">返回上一页</button>
+  </view>
+
+  <view class="card step-card">
+    <view class="step-title">当前进度</view>
+    <view class="step-list">
+      <view class="step-item" wx:for="{{steps}}" wx:key="key">
+        <view class="step-dot {{item.done ? 'done' : ''}}"></view>
+        <view class="step-label {{item.done ? 'done' : ''}}">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+</view>
+

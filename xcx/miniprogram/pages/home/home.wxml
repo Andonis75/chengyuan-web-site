@@ -1,0 +1,54 @@
+<view class="container">
+  <view class="header">
+    <view class="greeting">欢迎使用橙源智鉴</view>
+    <view class="subtitle">智能高光谱产地与品质分析系统</view>
+  </view>
+
+  <view class="card summary-card">
+    <block wx:for="{{summaryCards}}" wx:key="label">
+      <view class="summary-item">
+        <view class="summary-value">{{item.value}}</view>
+        <view class="summary-label">{{item.label}}</view>
+      </view>
+      <view class="summary-divider" wx:if="{{index < summaryCards.length - 1}}"></view>
+    </block>
+  </view>
+
+  <view class="section-title">快捷操作</view>
+  <view class="action-grid">
+    <view class="action-item" bindtap="goToSamples">
+      <view class="action-icon-wrap">
+        <text class="action-icon">样</text>
+      </view>
+      <text class="action-text">查看样本</text>
+    </view>
+    <view class="action-item" bindtap="goToAnalysis">
+      <view class="action-icon-wrap">
+        <text class="action-icon">析</text>
+      </view>
+      <text class="action-text">发起分析</text>
+    </view>
+  </view>
+
+  <view class="section-title">最近分析记录</view>
+  <view class="recent-list" wx:if="{{recentAnalyses.length > 0}}">
+    <view class="card recent-item" wx:for="{{recentAnalyses}}" wx:key="id">
+      <view class="recent-header">
+        <text class="sample-code">{{item.sampleCode}}</text>
+        <text class="status {{item.status === 'WARNING' ? 'warning' : 'success'}}">
+          {{item.status === 'WARNING' ? '异常样本' : '正常样本'}}
+        </text>
+      </view>
+      <view class="recent-body">
+        <text class="result-text">{{item.summary || '暂无结论'}}</text>
+      </view>
+      <view class="recent-footer">
+        <text class="time">{{item.createdAt}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:elif="{{!loading}}">
+    <text>暂无分析记录</text>
+  </view>
+</view>

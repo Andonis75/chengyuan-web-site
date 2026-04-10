@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
 
+:root {
+  /* 橙色主题基调 */
+  --background: #FFF7ED; /* orange-50 */
+  --foreground: #431407; /* orange-950 */
+  
+  --primary: #EA580C; /* orange-600 */
+  --primary-foreground: #FFFFFF;
+  
+  --secondary: #FFEDD5; /* orange-100 */
+  --secondary-foreground: #C2410C; /* orange-700 */
+  
+  --accent: #16A34A; /* green-600 (生态绿) */
+  --accent-foreground: #FFFFFF;
+  
+  --muted: #FFEDD5; /* orange-100 */
+  --muted-foreground: #9A3412; /* orange-800 */
+  
+  --border: #FED7AA; /* orange-200 */
+  
+  --card: rgba(255, 255, 255, 0.8);
+  --card-foreground: #431407;
+  
+  --radius: 0.75rem;
+}
+
+/* 移除暗黑模式，强制使用明亮橙色主题 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #FFF7ED;
+    --foreground: #431407;
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  /* 添加一个微妙的背景图案或渐变以增加质感 */
+  background-image: radial-gradient(circle at top right, #FFEDD5 0%, transparent 40%),
+                    radial-gradient(circle at bottom left, #DCFCE7 0%, transparent 40%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* 毛玻璃效果工具类 */
+.glass-panel {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.05), 0 2px 4px -1px rgba(234, 88, 12, 0.03);
+}
+
+/* 隐藏滚动条但保留滚动功能 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="task-list">
+    <view 
+      class="card task-card" 
+      wx:for="{{tasks}}" 
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="goToTaskDetail"
+    >
+      <view class="task-header">
+        <view class="task-no">{{item.taskNo}}</view>
+        <view class="task-status {{item.taskStatus === 'SUCCESS' ? 'success' : (item.taskStatus === 'FAILED' ? 'error' : 'processing')}}">
+          {{item.taskStatus === 'SUCCESS' ? '已完成' : (item.taskStatus === 'FAILED' ? '失败' : '分析中')}}
+        </view>
+      </view>
+      <view class="task-body">
+        <view class="task-type">{{item.taskType === 'SINGLE' ? '单样本分析' : '对比分析'}}</view>
+        <view class="task-samples">
+          <text class="sample-tag">{{item.sampleCode}}</text>
+          <text class="vs-text" wx:if="{{item.taskType === 'COMPARE'}}">VS</text>
+          <text class="sample-tag" wx:if="{{item.taskType === 'COMPARE'}}">{{item.compareSampleCode}}</text>
+        </view>
+      </view>
+      <view class="task-footer">
+        <text class="task-time">{{item.formattedDate}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+  <view class="empty-state" wx:elif="{{tasks.length === 0}}">
+    <text>暂无历史任务</text>
+  </view>
+  <view class="no-more" wx:elif="{{!hasMore && tasks.length > 0}}">
+    <text>没有更多了</text>
+  </view>
+</view>

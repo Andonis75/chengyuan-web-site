@@ -1,0 +1,55 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/samples/samples",
+    "pages/insights/insights",
+    "pages/profile/profile",
+    "pages/sample-detail/sample-detail",
+    "pages/analysis/analysis",
+    "pages/analyzing/analyzing",
+    "pages/result/result",
+    "pages/report/report",
+    "pages/history/history",
+    "pages/upload/upload"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "navigationBarTitleText": "橙源智鉴",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#FF8C00",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/samples/samples",
+        "text": "样本",
+        "iconPath": "assets/icons/sample.png",
+        "selectedIconPath": "assets/icons/sample-active.png"
+      },
+      {
+        "pagePath": "pages/insights/insights",
+        "text": "洞察",
+        "iconPath": "assets/icons/insight.png",
+        "selectedIconPath": "assets/icons/insight-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "assets/icons/profile.png",
+        "selectedIconPath": "assets/icons/profile-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

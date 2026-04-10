@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+**/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -19,16 +20,38 @@
 
 # production
 /build
+**/dist
 
 # misc
 .DS_Store
 *.pem
+*.pyc
+**/__pycache__/
+xcx/model-service/.venv/
+xcx/model-service/**/__pycache__/
+xcx/server/prisma/dev.db
+xcx/server/prisma/dev.db-journal
+xcx/server/prisma/.schema.generated.prisma
+xcx/server/dev.db
+xcx/server/uploads/
+xcx/miniprogram/project.private.config.json
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.out.log
+*.err.log
+.codex-next-*.log
+.codex-next-*.err.log
+.check-*.png
+.fixed-*.png
+.real-*.png
+.dashboard-*.png
+.home-*.png
+.codex-*.png
+~$*
 
 # env files (can opt-in for committing if needed)
 .env*

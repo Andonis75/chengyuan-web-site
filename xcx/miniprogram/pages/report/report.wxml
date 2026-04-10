@@ -1,0 +1,80 @@
+<view class="container" wx:if="{{!loading && report}}">
+  <view class="report-header">
+    <view class="report-title">{{reportView.reportTitle || report.fileName || '智能分析报告'}}</view>
+    <view class="report-meta">报告编号: {{report.task.taskNo || '--'}}</view>
+  </view>
+
+  <view class="card hero-card" wx:if="{{reportView}}">
+    <view class="hero-top">
+      <view>
+        <view class="hero-grade">{{reportView.grade.level}}</view>
+        <view class="hero-label">{{reportView.grade.label}}</view>
+      </view>
+      <view class="hero-score">{{reportView.grade.score}} 分</view>
+    </view>
+    <view class="hero-summary">{{reportView.grade.summary}}</view>
+  </view>
+
+  <view class="section-title">产地结论</view>
+  <view class="card content-card" wx:if="{{reportView}}">
+    <view class="info-row">
+      <text class="info-label">预测产地</text>
+      <text class="info-value strong">{{reportView.originConclusion.predictedOrigin}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">置信度</text>
+      <text class="info-value">{{reportView.originConclusion.confidencePercent}}</text>
+    </view>
+    <view class="info-row">
+      <text class="info-label">样本登记产地</text>
+      <text class="info-value">{{reportView.originConclusion.sampleOriginName}}</text>
+    </view>
+    <view class="info-row" wx:if="{{reportView.originConclusion.compareSampleOriginName}}">
+      <text class="info-label">对比样本产地</text>
+      <text class="info-value">{{reportView.originConclusion.compareSampleOriginName}}</text>
+    </view>
+  </view>
+
+  <view class="section-title">指标解读</view>
+  <view class="card metrics-card" wx:if="{{reportView}}">
+    <view class="metric-item" wx:for="{{reportView.metrics}}" wx:key="key">
+      <view class="metric-head">
+        <view class="metric-name">{{item.label}}</view>
+        <view class="metric-status {{item.status}}">{{item.status === 'excellent' ? '优' : (item.status === 'good' ? '良' : '需关注')}}</view>
+      </view>
+      <view class="metric-value-row">
+        <text class="metric-value">{{item.displayValue}}</text>
+        <text class="metric-unit" wx:if="{{item.unit}}">{{item.unit}}</text>
+      </view>
+      <view class="metric-range">推荐区间：{{item.recommendedRange}}</view>
+      <view class="metric-comment">{{item.comment}}</view>
+    </view>
+  </view>
+
+  <view class="section-title">AI 摘要</view>
+  <view class="card content-card" wx:if="{{reportView}}">
+    <text class="report-content" user-select="true">{{reportView.aiSummary}}</text>
+  </view>
+
+  <view class="section-title">分析建议</view>
+  <view class="card content-card" wx:if="{{reportView}}">
+    <view class="advice-item" wx:for="{{reportView.recommendations}}" wx:key="index">
+      <view class="advice-dot"></view>
+      <text class="advice-text">{{item}}</text>
+    </view>
+  </view>
+
+  <view class="card content-card" wx:if="{{!reportView}}">
+    <text class="report-content" user-select="true">{{report.content}}</text>
+  </view>
+
+  <view class="bottom-bar">
+    <button class="btn-primary" bindtap="downloadPdf" disabled="{{downloading}}">
+      {{downloading ? '处理中...' : '预览并下载 PDF'}}
+    </button>
+  </view>
+</view>
+
+<view class="loading-state" wx:if="{{loading}}">
+  <text>加载中...</text>
+</view>

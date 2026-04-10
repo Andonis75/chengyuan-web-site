@@ -1,0 +1,95 @@
+<view class="container" wx:if="{{!loading && sample}}">
+  <view class="card info-card">
+    <view class="info-header">
+      <view class="sample-code">{{sample.sampleCode}}</view>
+      <view class="sample-status {{sample.status === 'WARNING' ? 'warning' : 'normal'}}">
+        {{sample.status === 'WARNING' ? '异常' : '正常'}}
+      </view>
+    </view>
+    <view class="info-list">
+      <view class="info-item">
+        <text class="info-label">所属产地</text>
+        <text class="info-value">{{sample.origin.name || '--'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">采样时间</text>
+        <text class="info-value">{{sample.formattedDate || '--'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">备注信息</text>
+        <text class="info-value">{{sample.remarks || '无'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">理化指标</view>
+  <view class="card metrics-card">
+    <view class="metric-grid">
+      <view class="metric-item">
+        <view class="metric-value">{{sample.ssc}}</view>
+        <view class="metric-label">糖度(SSC)</view>
+      </view>
+      <view class="metric-item">
+        <view class="metric-value">{{sample.ta}}</view>
+        <view class="metric-label">酸度(TA)</view>
+      </view>
+      <view class="metric-item">
+        <view class="metric-value">{{sample.ratio}}</view>
+        <view class="metric-label">糖酸比</view>
+      </view>
+      <view class="metric-item">
+        <view class="metric-value">{{sample.vc}}</view>
+        <view class="metric-label">维生素C</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="section-title">光谱文件</view>
+  <view class="card files-card">
+    <view class="file-list" wx:if="{{files.length > 0}}">
+      <view class="file-item" wx:for="{{files}}" wx:key="id">
+        <view class="file-icon">F</view>
+        <view class="file-info">
+          <view class="file-name">{{item.originalName}}</view>
+          <view class="file-meta">{{item.sizeKb}} KB · {{item.formattedDate}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="empty-text" wx:else>暂无光谱文件</view>
+  </view>
+
+  <view class="section-title">历史分析记录</view>
+  <view class="analysis-list" wx:if="{{analyses.length > 0}}">
+    <view
+      class="card analysis-item"
+      wx:for="{{analyses}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      data-task-id="{{item.taskId}}"
+      bindtap="goToResult"
+    >
+      <view class="analysis-header">
+        <text class="analysis-type">单样本分析</text>
+        <text class="analysis-status success">已完成</text>
+      </view>
+      <view class="analysis-body">
+        <text class="analysis-summary">{{item.summary || '暂无结论'}}</text>
+      </view>
+      <view class="analysis-footer">
+        <text class="analysis-time">{{item.formattedDate}}</text>
+        <text class="view-detail">查看详情 ></text>
+      </view>
+    </view>
+  </view>
+  <view class="empty-state" wx:else>
+    <text>暂无分析记录</text>
+  </view>
+
+  <view class="bottom-bar">
+    <button class="btn-primary" bindtap="goToAnalysis">发起智能分析</button>
+  </view>
+</view>
+
+<view class="loading-state" wx:if="{{loading}}">
+  <text>加载中...</text>
+</view>

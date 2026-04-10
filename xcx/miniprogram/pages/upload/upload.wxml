@@ -1,0 +1,47 @@
+<view class="container">
+  <view class="section-title">基础信息</view>
+  <view class="card form-card">
+    <view class="form-item no-border">
+      <view class="form-label required">样本编号</view>
+      <input 
+        class="form-input" 
+        placeholder="请输入已有样本编号 (如: CM-2026-001)" 
+        value="{{sampleCode}}"
+        data-field="sampleCode"
+        bindinput="onInput"
+      />
+    </view>
+  </view>
+
+  <view class="section-title">光谱文件</view>
+  <view class="card file-card">
+    <view class="file-list" wx:if="{{files.length > 0}}">
+      <view class="file-item" wx:for="{{files}}" wx:key="path">
+        <view class="file-icon">📄</view>
+        <view class="file-info">
+          <view class="file-name">{{item.name}}</view>
+          <view class="file-status {{item.status}}">
+            {{item.status === 'pending' ? '等待上传' : (item.status === 'uploading' ? '上传中...' : (item.status === 'success' ? '上传成功' : '上传失败'))}}
+          </view>
+        </view>
+        <view class="file-remove" data-index="{{index}}" bindtap="removeFile" wx:if="{{item.status === 'pending' || item.status === 'error'}}">✕</view>
+      </view>
+    </view>
+    
+    <view class="upload-btn" bindtap="chooseMessageFile" wx:if="{{files.length < 5}}">
+      <view class="upload-icon">+</view>
+      <view class="upload-text">从微信聊天选择文件</view>
+      <view class="upload-hint">支持 .csv, .xlsx 格式，最多5个</view>
+    </view>
+  </view>
+
+  <view class="bottom-bar">
+    <button 
+      class="btn-primary {{uploading ? 'disabled' : ''}}" 
+      bindtap="submit"
+      disabled="{{uploading}}"
+    >
+      {{uploading ? '提交中...' : '确认上传'}}
+    </button>
+  </view>
+</view>

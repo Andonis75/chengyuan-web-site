@@ -1,0 +1,96 @@
+<view class="container">
+  <!-- 分析配置 -->
+  <view class="section-title">分析配置</view>
+  <view class="card config-card">
+    <view class="config-item">
+      <view class="config-label">主样本编号</view>
+      <view class="config-value">{{sampleCode}}</view>
+    </view>
+    
+    <view class="config-item">
+      <view class="config-label">分析类型</view>
+      <radio-group class="radio-group" bindchange="onTaskTypeChange">
+        <label class="radio-label">
+          <radio value="SINGLE" checked="{{taskType === 'SINGLE'}}" color="#FF8C00" /> 单样本分析
+        </label>
+        <label class="radio-label">
+          <radio value="COMPARE" checked="{{taskType === 'COMPARE'}}" color="#FF8C00" /> 对比分析
+        </label>
+      </radio-group>
+    </view>
+
+    <view class="config-item" wx:if="{{taskType === 'COMPARE'}}">
+      <view class="config-label">对比样本编号</view>
+      <input 
+        class="compare-input" 
+        placeholder="请输入对比样本编号" 
+        value="{{compareSampleCode}}"
+        bindinput="onCompareCodeInput"
+        bindblur="onCompareCodeBlur"
+      />
+    </view>
+  </view>
+
+  <view class="section-title">光谱文件</view>
+  <view class="card upload-card">
+    <view class="upload-header">
+      <view>
+        <view class="upload-title">当前样本文件</view>
+        <view class="upload-subtitle">先上传光谱文件，再发起本次分析</view>
+      </view>
+      <view class="upload-count {{fileCount > 0 ? 'ready' : ''}}">
+        {{fileLoading ? '读取中' : (fileCount > 0 ? '已上传 ' + fileCount + ' 个' : '待上传')}}
+      </view>
+    </view>
+
+    <view class="upload-list" wx:if="{{uploadedFiles.length > 0}}">
+      <view class="upload-file-item" wx:for="{{uploadedFiles}}" wx:key="id">
+        <view class="upload-file-name">{{item.originalName}}</view>
+      </view>
+    </view>
+    <view class="upload-empty" wx:else>
+      <text>暂无已上传光谱文件</text>
+    </view>
+
+    <button class="upload-entry-btn" bindtap="goToUpload">上传光谱文件</button>
+  </view>
+
+  <!-- 结果预览 -->
+  <view class="section-title">分析预览</view>
+  <view class="card preview-card">
+    <view class="loading-wrap" wx:if="{{loading}}">
+      <text>正在生成预览...</text>
+    </view>
+    <view class="preview-content" wx:elif="{{previewResult}}">
+      <view class="preview-header">
+        <text class="provider-tag">{{previewResult.provider}}</text>
+        <text class="version-text">{{previewResult.version}}</text>
+      </view>
+      <view class="preview-summary">{{previewResult.aiSummary}}</view>
+      <view class="preview-metrics">
+        <view class="p-metric">
+          <text class="p-label">预测产地</text>
+          <text class="p-value">{{previewResult.predictedOrigin || '--'}}</text>
+        </view>
+        <view class="p-metric">
+          <text class="p-label">置信度</text>
+          <text class="p-value">{{previewResult.confidence ? (previewResult.confidence * 100) + '%' : '--'}}</text>
+        </view>
+      </view>
+    </view>
+    <view class="empty-preview" wx:else>
+      <text>{{taskType === 'COMPARE' && !compareSampleCode ? '请输入对比样本编号以获取预览' : '暂无预览数据'}}</text>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <button 
+      class="btn-primary {{submitting ? 'disabled' : ''}}" 
+      bindtap="submitAnalysis"
+      disabled="{{submitting || fileCount < 1 || (taskType === 'COMPARE' && !compareSampleCode)}}"
+    >
+      {{submitting ? '提交中...' : (fileCount < 1 ? '请先上传光谱文件' : '确认发起分析')}}
+    </button>
+  </view>
+</view>

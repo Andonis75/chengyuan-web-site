@@ -1,3 +1,5 @@
+const BASE_PATH = "/chengyuan-web-site";
+
 export type OriginProfile = {
   name: string;
   region: string;
@@ -67,7 +69,7 @@ export const originProfiles: OriginProfile[] = [
       "适合突出标准化果园、分选包装和品牌授权。",
     ],
     stage: "适合放在全国脐橙版图里的核心位置来认识。",
-    imageSrc: "/origin-images/gannan.jpg",
+    imageSrc: `${BASE_PATH}/origin-images/gannan.jpg`,
     imageAlt: "挂在枝头上的橙果",
     imageCredit: "图片来源：Wikimedia Commons",
     imageCreditUrl:
@@ -89,7 +91,7 @@ export const originProfiles: OriginProfile[] = [
       "适合强调脐橙优势带中的区位价值。",
     ],
     stage: "放到广西板块里，会是很自然的一张名片。",
-    imageSrc: "/origin-images/fuchuan-fixed.jpg",
+    imageSrc: `${BASE_PATH}/origin-images/fuchuan-fixed.jpg`,
     imageAlt: "枝头成熟的脐橙示意图",
     imageCredit: "图片来源：Wikimedia Commons",
     imageCreditUrl:
@@ -111,7 +113,7 @@ export const originProfiles: OriginProfile[] = [
       "当前已接入对应真实样本，可和澄迈做对照展示。",
     ],
     stage: "很适合放在海南板块里做第一眼就能记住的品种。",
-    imageSrc: "/origin-images/qiongzhong-feature.jpg",
+    imageSrc: `${BASE_PATH}/origin-images/qiongzhong-feature.jpg`,
     imageAlt: "琼中绿橙产品展示图",
     imageCredit: "图片来源：农业农村部转载公开报道",
     imageCreditUrl:
@@ -133,7 +135,7 @@ export const originProfiles: OriginProfile[] = [
       "适合继续往数字化果园和样本批次方向扩展。",
     ],
     stage: "更适合通过样本表现和果园建设去认识它。",
-    imageSrc: "/origin-images/chengmai-display.jpg",
+    imageSrc: `${BASE_PATH}/origin-images/chengmai-display.jpg`,
     imageAlt: "绿色柑橘近景",
     imageCredit: "图片来源：海南省农业农村厅转载公开报道",
     imageCreditUrl:

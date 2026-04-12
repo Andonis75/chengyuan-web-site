@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"D:/Projects/chengyuan-web\" -type d -name \"jhs\" -exec ls -la {} \\\\;)",
+      "Bash(python -c ':*)",
+      "Bash(python:*)",
+      "mcp__Playwright__browser_navigate",
+      "mcp__Playwright__browser_take_screenshot",
+      "mcp__Playwright__browser_close",
+      "Bash(npm run:*)",
+      "mcp__Playwright__browser_evaluate",
+      "Bash(npm list:*)",
+      "Bash(npm start:*)",
+      "mcp__Playwright__browser_console_messages",
+      "mcp__Playwright__browser_click",
+      "mcp__Playwright__browser_snapshot",
+      "Bash(taskkill /PID 32056 /F)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(wmic process:*)",
+      "Bash(npm install:*)",
+      "mcp__Playwright__browser_wait_for",
+      "Bash(rm:*)",
+      "mcp__open-websearch__fetchWebContent",
+      "Bash(curl -I \"https://andonis75.github.io/chengyuan-web-site/_next/static/chunks/043oq_bz5lsav.css\")",
+      "WebSearch",
+      "Bash(curl -s \"https://api.github.com/repos/Andonis75/chengyuan-web-site/actions/runs?per_page=1\")",
+      "Bash(curl -s \"https://andonis75.github.io/chengyuan-web-site/\")",
+      "Bash(curl -I \"https://andonis75.github.io/chengyuan-web-site/_next/static/chunks/0imigtkzn_kko.css\")",
+      "Bash(curl -s \"https://api.github.com/repos/Andonis75/chengyuan-web-site/commits/main\")"
+    ]
+  }
+}

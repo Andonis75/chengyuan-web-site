@@ -1,0 +1,123 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e4]:
+      - link "橙源智鉴" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+        - generic [ref=e12]: 橙源智鉴
+      - navigation [ref=e13]:
+        - link "首页" [ref=e14] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e15]:
+            - img [ref=e16]
+            - text: 首页
+        - link "产区品种" [ref=e19] [cursor=pointer]:
+          - /url: /origins
+          - generic [ref=e20]:
+            - img [ref=e21]
+            - text: 产区品种
+        - link "评级标准" [ref=e24] [cursor=pointer]:
+          - /url: /grading
+          - generic [ref=e25]:
+            - img [ref=e26]
+            - text: 评级标准
+        - link "政策资料" [ref=e29] [cursor=pointer]:
+          - /url: /policy
+          - generic [ref=e30]:
+            - img [ref=e31]
+            - text: 政策资料
+        - link "智能分析" [ref=e34] [cursor=pointer]:
+          - /url: /analysis
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - text: 智能分析
+        - link "数据看板" [ref=e38] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e39]:
+            - img [ref=e40]
+            - text: 数据看板
+        - link "技术原理" [ref=e46] [cursor=pointer]:
+          - /url: /about
+          - generic [ref=e47]:
+            - img [ref=e48]
+            - text: 技术原理
+  - main [ref=e50]:
+    - generic [ref=e51]:
+      - generic [ref=e52]:
+        - heading "数据可视化大屏" [level=1] [ref=e53]
+        - paragraph [ref=e54]: 海南样本检测概览
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - img [ref=e58]
+          - generic [ref=e62]:
+            - generic [ref=e63]: 当前样本批次
+            - generic [ref=e64]: "10"
+        - generic [ref=e65]:
+          - img [ref=e67]
+          - generic [ref=e70]:
+            - generic [ref=e71]: 重点产地专题
+            - generic [ref=e72]: "2"
+        - generic [ref=e73]:
+          - img [ref=e75]
+          - generic [ref=e77]:
+            - generic [ref=e78]: 平均识别率
+            - generic [ref=e79]: 98.5%
+        - generic [ref=e80]:
+          - img [ref=e82]
+          - generic [ref=e84]:
+            - generic [ref=e85]: 建议复检
+            - generic [ref=e86]: "5"
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - heading "产地识别准确率" [level=3] [ref=e90]
+          - heading "各产地平均糖度" [level=3] [ref=e96]
+        - generic [ref=e101]:
+          - heading "样本特征空间分布" [level=3] [ref=e102]
+          - paragraph [ref=e108]:
+            - strong [ref=e109]: 偏离样本：
+            - text: 红色点
+        - generic [ref=e111]:
+          - heading "近期样本记录" [level=3] [ref=e113]
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - generic [ref=e119]:
+                - generic [ref=e120]: CM-1
+                - generic [ref=e121]: "识别结果: 澄迈福橙 | SSC: 7.35% | 糖酸比: 10.65"
+              - generic [ref=e122]:
+                - generic [ref=e123]: 建议复检
+                - generic [ref=e124]: 10 分钟前
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - generic [ref=e127]: CM-2
+                - generic [ref=e128]: "识别结果: 琼中绿橙 | SSC: 7.2% | 糖酸比: 12.905"
+              - generic [ref=e129]:
+                - generic [ref=e130]: 建议复检
+                - generic [ref=e131]: 20 分钟前
+            - generic [ref=e132]:
+              - generic [ref=e133]:
+                - generic [ref=e134]: CM-3
+                - generic [ref=e135]: "识别结果: 澄迈福橙 | SSC: 7.65% | 糖酸比: 11.63"
+              - generic [ref=e136]:
+                - generic [ref=e137]: 建议复检
+                - generic [ref=e138]: 30 分钟前
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - generic [ref=e141]: CM-4
+                - generic [ref=e142]: "识别结果: 琼中绿橙 | SSC: 11% | 糖酸比: 13.89"
+              - generic [ref=e143]:
+                - generic [ref=e144]: 已通过
+                - generic [ref=e145]: 40 分钟前
+            - generic [ref=e146]:
+              - generic [ref=e147]:
+                - generic [ref=e148]: CM-5
+                - generic [ref=e149]: "识别结果: 澄迈福橙 | SSC: 8.85% | 糖酸比: 15.935"
+              - generic [ref=e150]:
+                - generic [ref=e151]: 已通过
+                - generic [ref=e152]: 50 分钟前
+          - button "查看全部样本记录" [ref=e153]:
+            - text: 查看全部样本记录
+            - img [ref=e154]
+      - heading "近 30 批样本的糖度与酸度变化" [level=3] [ref=e157]
+  - button "Open Next.js Dev Tools" [ref=e167] [cursor=pointer]:
+    - img [ref=e168]
+  - alert [ref=e173]

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^python \"\\.\\\\脚本\\\\运行第一版双光谱基线模型\\.py\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

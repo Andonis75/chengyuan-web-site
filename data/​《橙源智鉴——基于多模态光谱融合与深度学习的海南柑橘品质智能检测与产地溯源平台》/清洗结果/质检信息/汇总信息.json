@@ -1,0 +1,136 @@
+{
+  "generated_at": "2026-04-09T21:19:54",
+  "input_dir": "20260404 橙子光谱及化验值",
+  "exports": [
+    {
+      "name": "滴定法指标",
+      "rows": 399,
+      "cols": 7,
+      "path": "清洗结果\\分模态表\\滴定法指标.csv",
+      "note": "滴定法 4 项指标，399 个样本。"
+    },
+    {
+      "name": "液质平行样明细",
+      "rows": 800,
+      "cols": 40,
+      "path": "清洗结果\\分模态表\\液质平行样明细.csv",
+      "note": "液质原始平行样明细，800 行。"
+    },
+    {
+      "name": "液质平均值",
+      "rows": 400,
+      "cols": 39,
+      "path": "清洗结果\\分模态表\\液质平均值.csv",
+      "note": "液质 A/B 平均后 400 个样本。"
+    },
+    {
+      "name": "HSI光谱_疑似错误勿用于建模",
+      "rows": 399,
+      "cols": 303,
+      "path": "清洗结果\\分模态表\\HSI光谱_疑似错误勿用于建模.csv",
+      "note": "原始 HSI 合并表，存在严重跨产地重复问题，不建议建模使用。"
+    },
+    {
+      "name": "HSI去重后光谱_仅供排查",
+      "rows": 200,
+      "cols": 303,
+      "path": "清洗结果\\分模态表\\HSI去重后光谱_仅供排查.csv",
+      "note": "删除重复 QZ 光谱后剩余 200 个样本，仅供排查，不建议正式跨产地建模。"
+    },
+    {
+      "name": "R210光谱",
+      "rows": 399,
+      "cols": 231,
+      "path": "清洗结果\\分模态表\\R210光谱.csv",
+      "note": "R210 合并表，CM 199 + QZ 200。"
+    },
+    {
+      "name": "S960澄迈原始光谱",
+      "rows": 200,
+      "cols": 1405,
+      "path": "清洗结果\\分模态表\\S960澄迈原始光谱.csv",
+      "note": "S960 澄迈原始表，1402 个波段。"
+    },
+    {
+      "name": "S960琼中原始光谱",
+      "rows": 200,
+      "cols": 1455,
+      "path": "清洗结果\\分模态表\\S960琼中原始光谱.csv",
+      "note": "S960 琼中原始表，1452 个波段。"
+    },
+    {
+      "name": "S960共同波段对齐表",
+      "rows": 400,
+      "cols": 1405,
+      "path": "清洗结果\\分模态表\\S960共同波段对齐表.csv",
+      "note": "S960 共同波段对齐表，400 个样本、1402 个波段。"
+    },
+    {
+      "name": "全模态融合表_含可疑HSI勿用",
+      "rows": 399,
+      "cols": 1973,
+      "path": "清洗结果\\融合数据\\全模态融合表_含可疑HSI勿用.csv",
+      "note": "包含可疑 HSI 的旧全模态融合表，仅保留作追溯。"
+    },
+    {
+      "name": "安全版_去除HSI融合表",
+      "rows": 399,
+      "cols": 1673,
+      "path": "清洗结果\\融合数据\\安全版_去除HSI融合表.csv",
+      "note": "正式推荐的安全建模主表，已完全剔除 HSI。"
+    },
+    {
+      "name": "液质与S960融合表",
+      "rows": 400,
+      "cols": 1441,
+      "path": "清洗结果\\融合数据\\液质与S960融合表.csv",
+      "note": "液质 + S960 共同样本融合表，400 个样本。"
+    },
+    {
+      "name": "样本清单",
+      "rows": 400,
+      "cols": 11,
+      "path": "清洗结果\\质检信息\\样本清单.csv",
+      "note": "每个样本在各模态中的存在情况。"
+    },
+    {
+      "name": "HSI跨产地同编号完全重复样本",
+      "rows": 199,
+      "cols": 4,
+      "path": "清洗结果\\质检信息\\HSI跨产地同编号完全重复样本.csv",
+      "note": "HSI 跨产地同编号完全一致样本对。"
+    },
+    {
+      "name": "HSI已删除重复样本",
+      "rows": 199,
+      "cols": 304,
+      "path": "清洗结果\\质检信息\\HSI已删除重复样本.csv",
+      "note": "从 HSI 中剔除的可疑重复样本明细。"
+    },
+    {
+      "name": "S960琼中额外波段",
+      "rows": 50,
+      "cols": 2,
+      "path": "清洗结果\\质检信息\\S960琼中额外波段.csv",
+      "note": "QZ 相比 CM 多出的尾部波段。"
+    }
+  ],
+  "s960_alignment": {
+    "common_band_count": 1402,
+    "cm_native_band_count": 1402,
+    "qz_native_band_count": 1452,
+    "qz_extra_band_count": 50,
+    "max_abs_diff_first_common_bands": 0.004931640630047696,
+    "cm_last_common_band_nm": "1069.985352",
+    "qz_last_common_band_nm": "1069.99",
+    "qz_last_native_band_nm": "1099.97"
+  },
+  "full_fusion_sample_count": 399,
+  "safe_fusion_without_hsi_sample_count": 399,
+  "lcms_s960_sample_count": 400,
+  "missing_all_modalities_samples": [
+    "CM-34"
+  ],
+  "hsi_exact_duplicate_pair_count": 199,
+  "hsi_filtered_sample_count": 200
+}

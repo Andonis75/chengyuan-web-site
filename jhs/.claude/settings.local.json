@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip -p \"项目计划书_优化版.docx\" word/document.xml)",
+      "Bash(sed 's/<[^>]*>//g')",
+      "Bash(python)",
+      "Bash(ls -lh 项目计划书_*.docx)",
+      "Bash(ls -lh *.docx)"
+    ]
+  }
+}

@@ -1,9 +1,8 @@
 "use client";
 
-import ReactECharts from "echarts-for-react";
-import type { EChartsReactProps } from "echarts-for-react";
-import type { ReactNode } from "react";
-import { Component, useEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { Component, useEffect, useRef } from "react";
+import * as echarts from "echarts";
 
 type ChartErrorBoundaryProps = {
   children: ReactNode;
@@ -11,6 +10,12 @@ type ChartErrorBoundaryProps = {
 
 type ChartErrorBoundaryState = {
   hasError: boolean;
+};
+
+type SafeEChartProps = {
+  className?: string;
+  option: object;
+  style?: CSSProperties;
 };
 
 class ChartErrorBoundary extends Component<ChartErrorBoundaryProps, ChartErrorBoundaryState> {
@@ -28,7 +33,7 @@ class ChartErrorBoundary extends Component<ChartErrorBoundaryProps, ChartErrorBo
     if (this.state.hasError) {
       return (
         <div className="flex h-full min-h-[220px] w-full items-center justify-center rounded-xl border border-dashed border-orange-200 bg-white/40 px-6 text-center text-sm leading-6 text-foreground/55">
-          当前图表暂时无法渲染，但页面其余内容仍可正常查看。
+          当前图表暂时无法渲染，但页面其他内容仍可正常查看。
         </div>
       );
     }
@@ -37,24 +42,48 @@ class ChartErrorBoundary extends Component<ChartErrorBoundaryProps, ChartErrorBo
   }
 }
 
-export function SafeEChart(props: EChartsReactProps) {
-  const [hydrated, setHydrated] = useState(false);
+function EChartCanvas({ className, option, style }: SafeEChartProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<echarts.EChartsType | null>(null);
 
   useEffect(() => {
-    setHydrated(true);
+    if (!containerRef.current) {
+      return;
+    }
+
+    const chart = echarts.init(containerRef.current, undefined, { renderer: "canvas" });
+    chartRef.current = chart;
+    chart.setOption(option as any);
+
+    const resizeObserver = new ResizeObserver(() => {
+      chart.resize();
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      chart.dispose();
+      chartRef.current = null;
+    };
   }, []);
 
-  if (!hydrated) {
-    return (
-      <div className="flex h-full min-h-[220px] w-full items-center justify-center rounded-xl border border-dashed border-orange-200 bg-white/40 text-sm text-foreground/45">
-        图表加载中...
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!chartRef.current) {
+      return;
+    }
 
+    chartRef.current.setOption(option as any, true);
+    chartRef.current.resize();
+  }, [option]);
+
+  return <div ref={containerRef} className={className} style={style} />;
+}
+
+export function SafeEChart(props: SafeEChartProps) {
   return (
     <ChartErrorBoundary>
-      <ReactECharts {...props} />
+      <EChartCanvas {...props} />
     </ChartErrorBoundary>
   );
 }

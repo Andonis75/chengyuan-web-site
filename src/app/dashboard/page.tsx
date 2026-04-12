@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Activity, ArrowRight, MapPin, Target, TriangleAlert } from "lucide-react";
 import mockData from "@/lib/mockData.json";
 import { SafeEChart } from "@/components/charts/SafeEChart";
+import * as echarts from "echarts";
 
 type ChemRecord = {
   id: string;
@@ -40,21 +41,21 @@ const taTrendData = [
   0.62, 0.6, 0.59, 0.6, 0.58, 0.57, 0.58, 0.56, 0.55, 0.56,
 ];
 
-function createStableCluster(count: number, centerX: number, centerY: number, spreadX: number, spreadY: number) {
-  return Array.from({ length: count }, (_, index) => [
-    Number((centerX + Math.sin(index * 0.85) * spreadX + (index % 5) * 0.16).toFixed(2)),
-    Number((centerY + Math.cos(index * 0.72) * spreadY - (index % 4) * 0.14).toFixed(2)),
+function createRandomCluster(count: number, centerX: number, centerY: number, spreadX: number, spreadY: number) {
+  return Array.from({ length: count }, () => [
+    Number((centerX + (Math.random() - 0.5) * 2 * spreadX).toFixed(2)),
+    Number((centerY + (Math.random() - 0.5) * 2 * spreadY).toFixed(2)),
   ]);
 }
 
-const chengmaiCluster = createStableCluster(24, 6.8, 6.3, 1.2, 1.1);
-const qiongzhongCluster = createStableCluster(24, -4.6, -4.1, 1.3, 1.25);
+const chengmaiCluster = createRandomCluster(24, 6.8, 6.3, 1.2, 1.1);
+const qiongzhongCluster = createRandomCluster(24, -4.6, -4.1, 1.3, 1.25);
 const anomalyCluster = [
-  [-1.2, 7.6],
-  [7.8, -2.1],
-  [2.7, 0.3],
-  [-6.5, 2.8],
-  [1.1, -7.2],
+  [Number((Math.random() * 16 - 8).toFixed(2)), Number((Math.random() * 16 - 8).toFixed(2))],
+  [Number((Math.random() * 16 - 8).toFixed(2)), Number((Math.random() * 16 - 8).toFixed(2))],
+  [Number((Math.random() * 16 - 8).toFixed(2)), Number((Math.random() * 16 - 8).toFixed(2))],
+  [Number((Math.random() * 16 - 8).toFixed(2)), Number((Math.random() * 16 - 8).toFixed(2))],
+  [Number((Math.random() * 16 - 8).toFixed(2)), Number((Math.random() * 16 - 8).toFixed(2))],
 ];
 
 const recentDetections = chemData.slice(0, 5).map((item, index) => ({
@@ -132,17 +133,10 @@ const barOption = {
       barWidth: "42%",
       data: [8.16, 9.43, 12.9, 12.5, 10.8],
       itemStyle: {
-        color: {
-          type: "linear",
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            { offset: 0, color: "#F97316" },
-            { offset: 1, color: "#FDBA74" },
-          ],
-        },
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "#F97316" },
+          { offset: 1, color: "#FDBA74" },
+        ]),
         borderRadius: [6, 6, 0, 0],
       },
     },
@@ -241,17 +235,10 @@ const trendOption = {
       data: sscTrendData,
       itemStyle: { color: "#F97316" },
       areaStyle: {
-        color: {
-          type: "linear",
-          x: 0,
-          y: 0,
-          x2: 0,
-          y2: 1,
-          colorStops: [
-            { offset: 0, color: "rgba(249, 115, 22, 0.3)" },
-            { offset: 1, color: "rgba(249, 115, 22, 0.05)" },
-          ],
-        },
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "rgba(249, 115, 22, 0.3)" },
+          { offset: 1, color: "rgba(249, 115, 22, 0.05)" },
+        ]),
       },
     },
     {

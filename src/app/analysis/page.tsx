@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Upload, Play, FileText, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { SafeEChart } from "@/components/charts/SafeEChart";
+import * as echarts from "echarts";
 
 export default function Analysis() {
   const [step, setStep] = useState<"upload" | "analyzing" | "result">("upload");
@@ -76,10 +77,10 @@ export default function Analysis() {
         data: mockData.spectrum.cm,
         itemStyle: { color: "#EA580C" },
         areaStyle: {
-          color: {
-            type: "linear", x: 0, y: 0, x2: 0, y2: 1,
-            colorStops: [{ offset: 0, color: "rgba(234, 88, 12, 0.3)" }, { offset: 1, color: "rgba(234, 88, 12, 0)" }]
-          }
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: "rgba(234, 88, 12, 0.3)" },
+            { offset: 1, color: "rgba(234, 88, 12, 0)" }
+          ])
         }
       }
     ] : [

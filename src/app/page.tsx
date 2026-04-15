@@ -252,7 +252,7 @@ export default function Home() {
               {homeQuickLinks.map((item, index) => (
                 <motion.div
                   key={item.href}
-              initial={false}
+                  initial={false}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: index * 0.08 }}
@@ -286,7 +286,7 @@ export default function Home() {
             {originProfiles.map((origin, index) => (
               <motion.div
                 key={origin.name}
-              initial={false}
+                initial={false}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.45, delay: index * 0.08 }}

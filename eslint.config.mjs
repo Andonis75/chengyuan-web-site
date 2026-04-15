@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Custom ignores for chengyuan-web structure:
+    "xcx/**",
+    "data/**",
+    "scripts/**",
+    "橙源智鉴_小程序端/**",
+    "jhs/**",
   ]),
 ]);
 

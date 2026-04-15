@@ -2,8 +2,39 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { Component, useEffect, useRef } from "react";
-import * as echarts from "echarts";
+import * as echarts from "echarts/core";
+import {
+  BarChart,
+  LineChart,
+  RadarChart,
+  ScatterChart,
+} from "echarts/charts";
+import {
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent,
+  RadarComponent,
+  VisualMapComponent,
+  DatasetComponent,
+} from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
 
+// Register the required components
+echarts.use([
+  BarChart,
+  LineChart,
+  RadarChart,
+  ScatterChart,
+  TitleComponent,
+  TooltipComponent,
+  GridComponent,
+  LegendComponent,
+  RadarComponent,
+  VisualMapComponent,
+  DatasetComponent,
+  CanvasRenderer,
+]);
 type ChartErrorBoundaryProps = {
   children: ReactNode;
 };

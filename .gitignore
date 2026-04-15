@@ -45,6 +45,8 @@ yarn-error.log*
 *.err.log
 .codex-next-*.log
 .codex-next-*.err.log
+artifacts/logs/
+artifacts/screenshots/
 .check-*.png
 .fixed-*.png
 .real-*.png

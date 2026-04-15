@@ -27,6 +27,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         <Navbar />
         <main className="pt-16 min-h-screen">

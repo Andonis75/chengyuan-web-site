@@ -1919,6 +1919,140 @@ a {
   animation: panelFadeIn 260ms ease-out forwards;
 }
 
+.kinetic-page {
+  --kinetic-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.kinetic-page .page-hero,
+.kinetic-page .origin-hero,
+.kinetic-page .grade-hero,
+.kinetic-page .policy-editorial,
+.kinetic-page .analysis-hero,
+.kinetic-page .analysis-console,
+.kinetic-page .lab-console,
+.kinetic-page .glass-panel,
+.kinetic-page .tech-card,
+.kinetic-page .tech-flow-section,
+.kinetic-page .tech-explainer,
+.kinetic-page .tech-metric-card,
+.kinetic-page .origin-profile,
+.kinetic-page .origin-reference-card,
+.kinetic-page .grade-tier-card,
+.kinetic-page .grade-case {
+  animation: kineticRise 520ms var(--kinetic-ease) both;
+}
+
+.kinetic-page .page-hero,
+.kinetic-page .origin-hero,
+.kinetic-page .grade-hero,
+.kinetic-page .policy-top-card,
+.kinetic-page .analysis-hero {
+  animation-duration: 620ms;
+}
+
+.kinetic-page section:nth-of-type(2),
+.kinetic-page article:nth-of-type(2),
+.kinetic-page .glass-panel:nth-child(2),
+.kinetic-page .tech-card:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.kinetic-page section:nth-of-type(3),
+.kinetic-page article:nth-of-type(3),
+.kinetic-page .glass-panel:nth-child(3),
+.kinetic-page .tech-card:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.kinetic-page section:nth-of-type(4),
+.kinetic-page article:nth-of-type(4),
+.kinetic-page .glass-panel:nth-child(4),
+.kinetic-page .tech-card:nth-child(4) {
+  animation-delay: 170ms;
+}
+
+.kinetic-page .readout-card,
+.kinetic-page .data-ribbon,
+.kinetic-page .analysis-mini-card,
+.kinetic-page .analysis-kpi {
+  position: relative;
+  overflow: hidden;
+}
+
+.kinetic-page .readout-card::after,
+.kinetic-page .data-ribbon::after,
+.kinetic-page .analysis-mini-card::after,
+.kinetic-page .analysis-kpi::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 0%, transparent 38%, rgba(255, 255, 255, 0.13) 50%, transparent 62%, transparent 100%);
+  transform: translateX(-120%);
+  animation: dataSheen 5.6s ease-in-out infinite;
+}
+
+.kinetic-page .scan-grid {
+  animation: gridDrift 16s linear infinite;
+}
+
+.kinetic-page .tech-step-card,
+.kinetic-page .rail-item,
+.kinetic-page .paper-row,
+.kinetic-page .dashboard-list__row {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.kinetic-page .tech-step-card:hover,
+.kinetic-page .rail-item:hover,
+.kinetic-page .paper-row:hover,
+.kinetic-page .dashboard-list__row:hover {
+  transform: translateY(-2px);
+}
+
+@keyframes kineticRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dataSheen {
+  0%,
+  42% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  52% {
+    opacity: 1;
+  }
+
+  70%,
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+@keyframes gridDrift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+
+  to {
+    background-position: 44px 44px, 44px 44px;
+  }
+}
+
 .analysis-workbench {
   --analysis-line: rgba(255, 255, 255, 0.12);
   --analysis-surface: rgba(5, 8, 7, 0.58);
@@ -2038,9 +2172,43 @@ a {
   white-space: pre-wrap;
 }
 
+.ai-report-panel {
+  border: 1px solid rgba(110, 231, 183, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(110, 231, 183, 0.09), transparent 32%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.028)),
+    rgba(0, 0, 0, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.ai-report-output {
+  min-height: 112px;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  white-space: pre-wrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-blur-fade-up,
-  .panel-fade-in {
+  .panel-fade-in,
+  .kinetic-page .page-hero,
+  .kinetic-page .origin-hero,
+  .kinetic-page .grade-hero,
+  .kinetic-page .policy-editorial,
+  .kinetic-page .analysis-hero,
+  .kinetic-page .analysis-console,
+  .kinetic-page .lab-console,
+  .kinetic-page .glass-panel,
+  .kinetic-page .tech-card,
+  .kinetic-page .tech-flow-section,
+  .kinetic-page .tech-explainer,
+  .kinetic-page .tech-metric-card,
+  .kinetic-page .origin-profile,
+  .kinetic-page .origin-reference-card,
+  .kinetic-page .grade-tier-card,
+  .kinetic-page .grade-case {
     animation: none;
     opacity: 1;
     filter: none;

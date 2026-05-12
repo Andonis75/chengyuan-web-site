@@ -1,4 +1,5 @@
 import { analyzeRealR210Spectrum, type RealAnalysisModelArtifact, type RealAnalysisResult } from "./realAnalysis";
+import { realSpectrumCM, realSpectrumQZ, realSpectrumWavelengths } from "./realSpectrumSamples";
 
 export type AnalysisOrigin = "CM" | "QZ" | "REVIEW";
 export type AnalysisMode = "single" | "compare";
@@ -37,13 +38,9 @@ export type AnalysisReferenceMetrics = {
   QZ: Pick<AnalysisMetrics, "ssc" | "ta" | "ratio" | "vc">;
 };
 
-export const analysisWavelengths = Array.from({ length: 120 }, (_, index) => Math.round(420 + index * 4.7));
-export const analysisSpectrumCM = analysisWavelengths.map((_, index) =>
-  Number((0.28 + Math.sin(index / 13) * 0.018 + index * 0.0019 + (index > 72 ? 0.045 : 0)).toFixed(4)),
-);
-export const analysisSpectrumQZ = analysisWavelengths.map((_, index) =>
-  Number((0.31 + Math.cos(index / 15) * 0.015 + index * 0.0012 + (index > 36 && index < 66 ? 0.052 : 0)).toFixed(4)),
-);
+export const analysisWavelengths = realSpectrumWavelengths;
+export const analysisSpectrumCM = realSpectrumCM;
+export const analysisSpectrumQZ = realSpectrumQZ;
 
 export const defaultAnalysisReferenceMetrics: AnalysisReferenceMetrics = {
   CM: { ssc: 10.65, ta: 0.415, ratio: 25.61, vc: 34.08 },

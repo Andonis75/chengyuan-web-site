@@ -58,6 +58,7 @@ import {
   type AnalysisSlot,
   type AnalysisStep,
 } from "./analysisEngine";
+import { buildLocalAiReportSummary, requestAiReportSummary } from "./aiReport";
 import { loadRealAnalysisModel, type RealAnalysisModelArtifact } from "./realAnalysis";
 
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
@@ -1110,6 +1111,9 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
   const [slotA, setSlotA] = useState<AnalysisSlot>(emptyAnalysisSlot);
   const [slotB, setSlotB] = useState<AnalysisSlot>(emptyAnalysisSlot);
   const [reportText, setReportText] = useState("");
+  const [aiSummary, setAiSummary] = useState("");
+  const [aiSummaryState, setAiSummaryState] = useState<"idle" | "local" | "loading" | "ready" | "error">("idle");
+  const [aiSummaryError, setAiSummaryError] = useState("");
   const [realModel, setRealModel] = useState<RealAnalysisModelArtifact | null>(null);
   const progressTimerRef = useRef<number | null>(null);
   const analysisRunIdRef = useRef(0);
@@ -1124,6 +1128,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
       ? realModel.wavelengths.map((wavelength) => Math.round(wavelength))
       : analysisWavelengths;
   const hasResult = step === "done";
+  const aiEndpointConfigured = Boolean(import.meta.env.VITE_AI_REPORT_ENDPOINT);
   const resultMetrics = metricsA;
   const compareResultCards: Array<{ label: string; metrics: AnalysisMetrics; tone: string }> = [
     { label: "样本 A", metrics: metricsA, tone: "border-orange-200/18 bg-orange-300/10" },
@@ -1251,6 +1256,9 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     setProgress(0);
     setProgressLabel(analysisProgressSteps[0]);
     setReportText("");
+    setAiSummary("");
+    setAiSummaryState("idle");
+    setAiSummaryError("");
   };
 
   const resetAnalysis = () => {
@@ -1347,6 +1355,9 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
           if (analysisRunIdRef.current === runId) {
             setStep("done");
             setReportText(buildAnalysisReport(mode, metricsA, mode === "compare" ? metricsB : undefined));
+            setAiSummary("");
+            setAiSummaryState("idle");
+            setAiSummaryError("");
           }
         }
         return next;
@@ -1364,6 +1375,35 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     link.download = "chengyuan-analysis-report.md";
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const summarizeReport = async () => {
+    if (!hasResult || !reportText || aiSummaryState === "loading") return;
+    const payload = {
+      mode,
+      reportText,
+      sampleA: metricsA,
+      sampleB: mode === "compare" ? metricsB : undefined,
+    };
+
+    if (!aiEndpointConfigured) {
+      setAiSummary(buildLocalAiReportSummary(payload));
+      setAiSummaryState("local");
+      setAiSummaryError("DeepSeek 代理未配置，当前显示本地规则总结。");
+      return;
+    }
+
+    setAiSummaryState("loading");
+    setAiSummaryError("");
+    try {
+      const result = await requestAiReportSummary(payload);
+      setAiSummary(result.summary);
+      setAiSummaryState("ready");
+    } catch (error) {
+      setAiSummary(buildLocalAiReportSummary(payload));
+      setAiSummaryState("error");
+      setAiSummaryError(error instanceof Error ? error.message : "AI 总结失败，已切换本地规则总结。");
+    }
   };
 
   const renderSlot = (slot: "A" | "B", data: AnalysisSlot) => (
@@ -1398,7 +1438,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
   );
 
   return (
-    <div key={tab.id} className="analysis-workbench panel-fade-in mx-auto w-full max-w-7xl pb-12">
+    <div key={tab.id} className="analysis-workbench kinetic-page panel-fade-in mx-auto w-full max-w-7xl pb-12">
       <section className="analysis-hero mb-6 rounded-[30px] p-6 md:p-8">
         <div className="grid gap-7 lg:grid-cols-[1.05fr_0.95fr] lg:items-end">
           <div>
@@ -1628,6 +1668,31 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
               ? reportText
               : "等待开始分析。\n\n上传文件后这里只保留为空，点击“开始分析”并完成进度后，系统才会生成正式报告。"}
           </pre>
+          <div className="ai-report-panel mt-4 rounded-2xl p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                  <BrainCircuit size={17} />
+                  DeepSeek 多维总结
+                </div>
+                <p className="mt-1 text-xs leading-5 text-white/48">
+                  {aiEndpointConfigured ? "已配置 AI 代理，点击后生成产地、品质、风险和经营建议。" : "静态站不保存密钥；配置后端代理后可切换为 DeepSeek 总结。"}
+                </p>
+              </div>
+              <button
+                className="analysis-action rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
+                disabled={!hasResult || !reportText || aiSummaryState === "loading"}
+                onClick={summarizeReport}
+              >
+                {aiSummaryState === "loading" ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
+                {aiEndpointConfigured ? "生成 AI 总结" : "生成本地总结"}
+              </button>
+            </div>
+            <pre className="ai-report-output mt-3 rounded-xl p-3 text-sm leading-7 text-white/68">
+              {aiSummary || "完成分析后，可在这里生成多方位总结。后续 DeepSeek 密钥只放在后端代理环境变量里。"}
+            </pre>
+            {aiSummaryError ? <div className="mt-2 text-xs leading-5 text-orange-100/72">{aiSummaryError}</div> : null}
+          </div>
         </article>
       </section>
     </div>
@@ -1648,7 +1713,7 @@ function PolicyWorkspace({ tab }: { tab: TabConfig }) {
   const coreDocs = policyDocuments.filter((item) => item.level === "A").slice(0, 4);
 
   return (
-    <div key={tab.id} className="policy-page panel-fade-in mx-auto w-full max-w-6xl pb-14">
+    <div key={tab.id} className="policy-page kinetic-page panel-fade-in mx-auto w-full max-w-6xl pb-14">
       <section className="policy-editorial policy-top-card">
         <div className="policy-cover">
         <div className="policy-cover__grid">
@@ -1761,7 +1826,7 @@ function PolicyWorkspace({ tab }: { tab: TabConfig }) {
 
 function GradingWorkspace({ tab }: { tab: TabConfig }) {
   return (
-    <div key={tab.id} className="origin-lab panel-fade-in mx-auto w-full max-w-7xl pb-12">
+    <div key={tab.id} className="origin-lab kinetic-page panel-fade-in mx-auto w-full max-w-7xl pb-12">
       <section className="grade-hero relative overflow-hidden rounded-[30px]">
         <img src={assetPath("/origin-images/gallery-fenxuan.jpg")} alt="柑橘分选检测" className="absolute inset-0 h-full w-full object-cover opacity-70" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_24%,rgba(251,146,60,0.34),transparent_28%),radial-gradient(circle_at_78%_26%,rgba(110,231,183,0.22),transparent_30%),linear-gradient(90deg,rgba(0,0,0,0.9),rgba(0,0,0,0.5)_52%,rgba(0,0,0,0.82))]" />
@@ -1936,7 +2001,7 @@ function OriginWorkspace({ tab }: { tab: TabConfig }) {
   const qz = originFocus[1];
 
   return (
-    <div key={tab.id} className="origin-lab panel-fade-in mx-auto w-full max-w-7xl pb-12">
+    <div key={tab.id} className="origin-lab kinetic-page panel-fade-in mx-auto w-full max-w-7xl pb-12">
       <section className="origin-hero relative overflow-hidden rounded-[30px]">
         <div className="absolute inset-0 grid grid-cols-2">
           <img src={cm.image} alt={cm.name} className="h-full w-full object-cover opacity-72" />
@@ -2151,7 +2216,7 @@ function OriginWorkspace({ tab }: { tab: TabConfig }) {
 
 function DashboardWorkspace({ tab }: { tab: TabConfig }) {
   return (
-    <div key={tab.id} className="panel-fade-in mx-auto w-full max-w-7xl pb-12">
+    <div key={tab.id} className="kinetic-page panel-fade-in mx-auto w-full max-w-7xl pb-12">
       <section className="page-hero mb-8 rounded-3xl p-6 md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -2317,7 +2382,7 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
 
 function ModelWorkspace({ tab }: { tab: TabConfig }) {
   return (
-    <div key={tab.id} className="panel-fade-in mx-auto w-full max-w-7xl pb-12">
+    <div key={tab.id} className="kinetic-page panel-fade-in mx-auto w-full max-w-7xl pb-12">
       <section className="page-hero tech-hero mb-7 rounded-[30px] p-6 md:p-8">
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>

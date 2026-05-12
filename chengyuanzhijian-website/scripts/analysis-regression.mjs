@@ -8,9 +8,11 @@ import ts from "typescript";
 const root = resolve(import.meta.dirname, "..");
 const sourcePath = resolve(root, "src/analysisEngine.ts");
 const realSourcePath = resolve(root, "src/realAnalysis.ts");
+const spectrumSourcePath = resolve(root, "src/realSpectrumSamples.ts");
 const tmpDir = await mkdtemp(resolve(tmpdir(), "cy-analysis-"));
 const outputPath = resolve(tmpDir, "analysisEngine.mjs");
 const realOutputPath = resolve(tmpDir, "realAnalysis.mjs");
+const spectrumOutputPath = resolve(tmpDir, "realSpectrumSamples.mjs");
 
 function transpile(source) {
   return ts.transpileModule(source, {
@@ -22,15 +24,22 @@ function transpile(source) {
   }).outputText;
 }
 
-const source = (await readFile(sourcePath, "utf8")).replace('from "./realAnalysis"', 'from "./realAnalysis.mjs"');
+const source = (await readFile(sourcePath, "utf8"))
+  .replace('from "./realAnalysis"', 'from "./realAnalysis.mjs"')
+  .replace('from "./realSpectrumSamples"', 'from "./realSpectrumSamples.mjs"');
 const realSource = await readFile(realSourcePath, "utf8");
+const spectrumSource = await readFile(spectrumSourcePath, "utf8");
 
 await writeFile(realOutputPath, transpile(realSource));
+await writeFile(spectrumOutputPath, transpile(spectrumSource));
 await writeFile(outputPath, transpile(source));
 
 const {
   buildAnalysisReport,
   emptyAnalysisSlot,
+  analysisSpectrumCM,
+  analysisSpectrumQZ,
+  analysisWavelengths,
   metricsForAnalysis,
   splitAnalysisSampleGroups,
 } = await import(pathToFileURL(outputPath));
@@ -40,6 +49,9 @@ const groups = splitAnalysisSampleGroups(dualCsv);
 assert.equal(groups.length, 2, "双样本 CSV 应拆成两个样本组");
 assert.equal(groups[0].sampleId, "CM-120");
 assert.equal(groups[1].sampleId, "QZ-1");
+assert.equal(analysisWavelengths.length, 228, "默认光谱应使用真实 R210 波段");
+assert.equal(analysisSpectrumCM.length, analysisWavelengths.length);
+assert.equal(analysisSpectrumQZ.length, analysisWavelengths.length);
 
 const slotA = {
   fileName: "CM-120.csv",

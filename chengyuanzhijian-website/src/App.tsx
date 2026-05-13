@@ -4,7 +4,6 @@ import {
   Activity,
   AlertCircle,
   ArrowUpRight,
-  ArrowRight,
   BarChart3,
   BrainCircuit,
   BookOpen,
@@ -58,6 +57,18 @@ import {
   type AnalysisSlot,
   type AnalysisStep,
 } from "./analysisEngine";
+import {
+  dashboardAverageRatio,
+  dashboardFeaturePoints,
+  dashboardMetricCategories,
+  dashboardMetricSeries,
+  dashboardModelMetrics,
+  dashboardReadinessRadar,
+  dashboardReviewCount,
+  dashboardSampleByOrigin,
+  dashboardSamples,
+  dashboardSpectrumProfile,
+} from "./dashboardData";
 import { buildLocalAiReportSummary, requestAiReportSummary } from "./aiReport";
 import { loadRealAnalysisModel, type RealAnalysisModelArtifact } from "./realAnalysis";
 
@@ -509,64 +520,22 @@ const policySignals = [
   { label: "技术研究", value: "1", text: "真实性溯源综述支撑光谱、代谢组等技术路线说明。" },
 ];
 
-const chemData = [
-  { id: "CM-1", ssc: 7.35, ta: 0.69, ratio: 10.65, vc: 46.57 },
-  { id: "CM-52", ssc: 8.5, ta: 0.575, ratio: 15.02, vc: 36.9 },
-  { id: "CM-120", ssc: 10.65, ta: 0.415, ratio: 25.61, vc: 34.08 },
-  { id: "QZ-1", ssc: 10.65, ta: 0.49, ratio: 22.23, vc: 31.59 },
-  { id: "QZ-58", ssc: 10.5, ta: 0.465, ratio: 22.55, vc: 28.12 },
-  { id: "QZ-144", ssc: 10.85, ta: 0.71, ratio: 15.24, vc: 29.81 },
-  { id: "CM-8", ssc: 7.55, ta: 1.13, ratio: 6.76, vc: 47.85 },
-  { id: "CM-17", ssc: 8.9, ta: 0.69, ratio: 13.14, vc: 43.91 },
-  { id: "QZ-88", ssc: 11.2, ta: 0.58, ratio: 19.31, vc: 30.16 },
-  { id: "QZ-167", ssc: 10.78, ta: 0.63, ratio: 17.12, vc: 29.64 },
-];
-
-const reviewCount = chemData.filter((item) => item.ssc < 8.5 || item.ratio < 12).length;
-const reviewRate = `${Math.round((reviewCount / chemData.length) * 100)}%`;
-const averageRatio = (chemData.reduce((sum, item) => sum + item.ratio, 0) / chemData.length).toFixed(2);
-
 const dashboardStats = [
-  { title: "总样本库", value: "399", note: "CM=199，QZ=200", icon: Target, tone: "sky" },
-  { title: "最近记录", value: `${chemData.length}`, note: "2026-04 最近批次", icon: MapPin, tone: "orange" },
-  { title: "复检率", value: reviewRate, note: `${reviewCount} 条触发阈值`, icon: TriangleAlert, tone: "rose" },
-  { title: "平均糖酸比", value: averageRatio, note: "最近记录均值", icon: Activity, tone: "emerald" },
+  { title: "真实训练样本", value: `${dashboardModelMetrics.trainingSamples}`, note: "R210 建模样本库", icon: Target, tone: "sky" },
+  { title: "R210 有效波段", value: `${dashboardModelMetrics.wavelengthCount}`, note: `${Math.round(dashboardModelMetrics.wavelengthMin)}-${Math.round(dashboardModelMetrics.wavelengthMax)} nm`, icon: MapPin, tone: "orange" },
+  { title: "产地模型准确率", value: `${(dashboardModelMetrics.originAccuracy * 100).toFixed(2)}%`, note: `展示置信度固定 ${dashboardModelMetrics.displayedConfidence}%`, icon: TriangleAlert, tone: "rose" },
+  { title: "糖度回归 RMSE", value: dashboardModelMetrics.sugarRmse.toFixed(2), note: `R2 ${dashboardModelMetrics.sugarR2.toFixed(3)} / RPD ${dashboardModelMetrics.sugarRpd.toFixed(2)}`, icon: Activity, tone: "emerald" },
 ];
 
-const recentDetections = chemData.slice(0, 5).map((item, index) => ({
+const recentDetections = dashboardSamples.map((item) => ({
   id: item.id,
-  origin: item.id.startsWith("CM") ? "澄迈福橙" : "琼中绿橙",
+  origin: item.originName,
   ssc: item.ssc.toFixed(2),
   ratio: item.ratio.toFixed(2),
-  model: item.id === "CM-120" || item.id === "QZ-1" ? "R210 v1" : "实测留档",
-  status: item.ssc >= 8.5 && item.ratio >= 12 ? "可分级" : "建议复检",
-  time: `${(index + 1) * 10} 分钟前`,
+  model: item.model,
+  status: item.status,
+  time: dashboardModelMetrics.modelVersion,
 }));
-
-
-const fieldRadar = [
-  { label: "光谱列", value: 100 },
-  { label: "SSC", value: 92 },
-  { label: "TA", value: 92 },
-  { label: "糖酸比", value: 86 },
-  { label: "报告字段", value: 96 },
-];
-
-const originBars = [
-  { label: "澄迈福橙", value: 9.72, tone: "orange" },
-  { label: "琼中绿橙", value: 10.79, tone: "emerald" },
-  { label: "全库均值", value: 10.26, tone: "slate" },
-];
-
-const scatterPoints = {
-  cm: [[5.7, 5.9], [6.2, 6.4], [6.6, 5.8], [7.1, 6.3], [7.4, 6.9], [6.9, 7.0], [5.9, 6.8], [6.4, 7.2]],
-  qz: [[-5.9, -4.4], [-5.4, -3.8], [-4.9, -5.2], [-4.2, -4.7], [-3.8, -3.9], [-4.6, -3.4], [-5.1, -4.5], [-4.4, -5.4]],
-  anomaly: [[-3.1, -6.2], [2.4, -3.0], [4.8, 5.9]],
-};
-
-const trendLabels = ["3/12", "3/16", "3/20", "3/24", "3/28", "4/1", "4/5", "4/10"];
-const sscTrendData = [9.2, 9.8, 10.4, 10.7, 10.6, 11.0, 11.4, 11.0];
-const taTrendData = [0.78, 0.74, 0.70, 0.67, 0.65, 0.62, 0.57, 0.56];
 
 const modelEvidence = [
   { title: "输入层", metric: "HSI / R210 / S960", description: "不同设备与波段文件进入同一套样本档案，先完成波段校验和预处理。" },
@@ -676,13 +645,7 @@ const radarOption = {
     textStyle: { color: "#fff" },
   },
   radar: {
-    indicator: [
-      { name: "光谱列", max: 100 },
-      { name: "SSC", max: 100 },
-      { name: "TA", max: 100 },
-      { name: "糖酸比", max: 100 },
-      { name: "报告字段", max: 100 },
-    ],
+    indicator: dashboardReadinessRadar.map((item) => ({ name: item.label, max: 100 })),
     splitArea: {
       areaStyle: {
         color: [
@@ -699,12 +662,12 @@ const radarOption = {
   },
   series: [
     {
-      name: "字段完整度",
+      name: "真实模型就绪度",
       type: "radar",
       data: [
         {
-          value: [100, 92, 92, 86, 96],
-          name: "最近批次(%)",
+          value: dashboardReadinessRadar.map((item) => item.value),
+          name: "R210 v1(%)",
           itemStyle: { color: "#EA580C" },
           areaStyle: { color: "rgba(234, 88, 12, 0.28)" },
         },
@@ -724,27 +687,33 @@ const barOption = {
   grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
   xAxis: {
     type: "category",
-    data: ["澄迈福橙", "琼中绿橙", "全库均值"],
+    data: dashboardMetricCategories,
     axisLine: { lineStyle: { color: "rgba(255,255,255,0.22)" } },
     axisLabel: { color: "rgba(255,255,255,0.84)", interval: 0 },
   },
   yAxis: {
     type: "value",
-    name: "平均糖度 (SSC %)",
+    name: "样本指标",
     nameTextStyle: { color: "rgba(255,255,255,0.74)" },
     splitLine: { lineStyle: { color: "rgba(255,255,255,0.16)", type: "dashed" } },
     axisLabel: { color: "rgba(255,255,255,0.82)" },
   },
   series: [
     {
-      name: "SSC",
+      name: "CM-120",
       type: "bar",
-      barWidth: "42%",
-      data: [9.72, 10.79, 10.26],
+      data: dashboardMetricSeries.CM,
       itemStyle: {
-        color(params: { dataIndex: number }) {
-          return ["#EA580C", "#16A34A", "#64748B"][params.dataIndex] ?? "#EA580C";
-        },
+        color: "#F97316",
+        borderRadius: [6, 6, 0, 0],
+      },
+    },
+    {
+      name: "QZ-1",
+      type: "bar",
+      data: dashboardMetricSeries.QZ,
+      itemStyle: {
+        color: "#22C55E",
         borderRadius: [6, 6, 0, 0],
       },
     },
@@ -754,93 +723,66 @@ const barOption = {
 const scatterOption = {
   backgroundColor: "transparent",
   title: {
-    text: "样本二维特征分布",
+    text: "真实光谱特征点位",
     left: "center",
     textStyle: { color: "rgba(255,255,255,0.82)", fontSize: 16, fontWeight: "normal" },
   },
   tooltip: {
     trigger: "item",
     formatter(params: { seriesName: string; value: number[] }) {
-      return `${params.seriesName}<br/>特征 1: ${params.value[0].toFixed(2)}<br/>特征 2: ${params.value[1].toFixed(2)}`;
+      return `${params.seriesName}<br/>901-1100nm 均值: ${params.value[0].toFixed(4)}<br/>1300-1701nm 均值: ${params.value[1].toFixed(4)}`;
     },
   },
   legend: { bottom: 0, textStyle: { color: "rgba(255,255,255,0.64)" } },
   xAxis: {
-    name: "特征 1",
+    name: "短波段反射均值",
     splitLine: { show: false },
     axisLine: { lineStyle: { color: "rgba(255,255,255,0.18)" } },
     axisLabel: { color: "rgba(255,255,255,0.72)" },
   },
   yAxis: {
-    name: "特征 2",
+    name: "近红外反射均值",
     splitLine: { show: false },
     axisLine: { lineStyle: { color: "rgba(255,255,255,0.18)" } },
     axisLabel: { color: "rgba(255,255,255,0.72)" },
   },
-  series: [
-    {
-      name: "澄迈福橙",
-      type: "scatter",
-      symbolSize: 8,
-      data: scatterPoints.cm,
-      itemStyle: { color: "#EA580C" },
-    },
-    {
-      name: "琼中绿橙",
-      type: "scatter",
-      symbolSize: 8,
-      data: scatterPoints.qz,
-      itemStyle: { color: "#16A34A" },
-    },
-    {
-      name: "复检样本",
-      type: "scatter",
-      symbolSize: 12,
-      data: scatterPoints.anomaly,
-      itemStyle: { color: "#EF4444" },
-    },
-  ],
+  series: dashboardFeaturePoints.map((point) => ({
+    name: `${point.id} ${point.originName}`,
+    type: "scatter",
+    symbolSize: 18,
+    data: [[point.shortWaveMean, point.nirMean]],
+    itemStyle: { color: point.color },
+  })),
 };
 
 const trendOption = {
   backgroundColor: "transparent",
   tooltip: { trigger: "axis" },
   legend: {
-    data: ["平均糖度 (SSC)", "平均酸度 (TA)"],
+    data: ["CM-120 反射率", "QZ-1 反射率"],
     textStyle: { color: "rgba(255,255,255,0.66)" },
   },
   grid: { left: "3%", right: "4%", bottom: "3%", containLabel: true },
   xAxis: {
     type: "category",
     boundaryGap: false,
-    data: trendLabels,
+    data: dashboardSpectrumProfile.labels,
     axisLine: { lineStyle: { color: "rgba(255,255,255,0.18)" } },
     axisLabel: { color: "rgba(255,255,255,0.72)" },
   },
-  yAxis: [
-    {
-      type: "value",
-      name: "糖度 (%)",
-      position: "left",
-      axisLine: { show: true, lineStyle: { color: "#F97316" } },
-      splitLine: { lineStyle: { color: "rgba(255,255,255,0.12)", type: "dashed" } },
-      axisLabel: { color: "rgba(255,255,255,0.72)" },
-    },
-    {
-      type: "value",
-      name: "酸度 (%)",
-      position: "right",
-      axisLine: { show: true, lineStyle: { color: "#16A34A" } },
-      splitLine: { show: false },
-      axisLabel: { color: "rgba(255,255,255,0.72)" },
-    },
-  ],
+  yAxis: {
+    type: "value",
+    name: "反射率",
+    axisLine: { show: true, lineStyle: { color: "#F97316" } },
+    splitLine: { lineStyle: { color: "rgba(255,255,255,0.12)", type: "dashed" } },
+    axisLabel: { color: "rgba(255,255,255,0.72)" },
+  },
   series: [
     {
-      name: "平均糖度 (SSC)",
+      name: "CM-120 反射率",
       type: "line",
       smooth: true,
-      data: sscTrendData,
+      data: dashboardSpectrumProfile.cm,
       itemStyle: { color: "#F97316" },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
@@ -850,11 +792,10 @@ const trendOption = {
       },
     },
     {
-      name: "平均酸度 (TA)",
+      name: "QZ-1 反射率",
       type: "line",
-      yAxisIndex: 1,
       smooth: true,
-      data: taTrendData,
+      data: dashboardSpectrumProfile.qz,
       itemStyle: { color: "#16A34A" },
     },
   ],
@@ -1279,9 +1220,9 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
   }, []);
 
   const loadExample = (slot: "A" | "B", origin: Exclude<AnalysisOrigin, "REVIEW">) => {
-    const base = origin === "CM" ? chemData[2] : chemData[3];
+    const base = dashboardSampleByOrigin[origin];
     const next: AnalysisSlot = {
-      fileName: origin === "CM" ? "示例_澄迈福橙_CM-120.csv" : "示例_琼中绿橙_QZ-001.csv",
+      fileName: origin === "CM" ? "示例_澄迈福橙_CM-120.csv" : "示例_琼中绿橙_QZ-1.csv",
       spectrum: origin === "CM" ? analysisSpectrumCM : analysisSpectrumQZ,
       origin,
       message: "已载入示例样本，可直接查看完整分析链路。",
@@ -2225,14 +2166,14 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
             </div>
             <h1 className="text-3xl font-black tracking-tight md:text-5xl">数据可视化大屏</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-white/72 md:text-base">
-              总库 399 份理化样本；本页显示 2026-04 最近 10 条记录。复检阈值：SSC &lt; 8.5 或糖酸比 &lt; 12。
+              关联真实 R210 光谱样本与 orange-real-analysis-v1 模型，展示训练规模、交叉验证指标、质检阈值和 CM-120 / QZ-1 双样本对比。
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              ["CM", "199", "澄迈样本"],
-              ["QZ", "200", "琼中样本"],
-              ["RULE", `${reviewCount}`, "复检项"],
+              ["MODEL", "v1", "真实算法"],
+              ["BANDS", `${dashboardModelMetrics.wavelengthCount}`, "R210 波段"],
+              ["CONF", `${dashboardModelMetrics.displayedConfidence}%`, "展示置信度"],
             ].map(([code, value, label]) => (
               <div key={code} className="data-ribbon min-w-28 rounded-2xl px-4 py-3">
                 <div className="text-xs font-bold tracking-[0.18em] text-white/55">{code}</div>
@@ -2273,8 +2214,8 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
             transition={{ delay: 0.16 }}
             className="glass-panel flex-1 rounded-2xl p-6"
           >
-            <h3 className="mb-1 text-lg font-bold text-white">最近批次字段完整度</h3>
-            <p className="mb-4 text-xs text-white/45">口径：最近 10 条记录；用于检查数据链路，不代表模型准确率。</p>
+            <h3 className="mb-1 text-lg font-bold text-white">真实模型就绪度</h3>
+            <p className="mb-4 text-xs text-white/45">口径：R210 artifact；产地准确率来自交叉验证，糖度 R2 为 PLSR 回归表现。</p>
             <div className="h-[300px]">
               <SafeEChart option={radarOption} style={{ height: "100%", width: "100%" }} />
             </div>
@@ -2286,8 +2227,8 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
             transition={{ delay: 0.24 }}
             className="glass-panel flex-1 rounded-2xl p-6"
           >
-            <h3 className="mb-1 text-lg font-bold text-white">各产地平均糖度</h3>
-            <p className="mb-4 text-xs text-white/45">数据口径：n=399，CM=199，QZ=200，单位 SSC%。</p>
+            <h3 className="mb-1 text-lg font-bold text-white">真实样本理化对比</h3>
+            <p className="mb-4 text-xs text-white/45">CM-120 与 QZ-1 来自双样本 CSV；TA 与 VC 做比例缩放便于同图比较。</p>
             <div className="h-[260px]">
               <SafeEChart option={barOption} style={{ height: "100%", width: "100%" }} />
             </div>
@@ -2300,17 +2241,17 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
           transition={{ delay: 0.32 }}
           className="glass-panel flex flex-col rounded-2xl p-6 lg:col-span-1"
         >
-          <h3 className="mb-1 text-lg font-bold text-white">样本特征空间分布</h3>
-          <p className="mb-4 text-xs text-white/45">固定点位用于呈现簇分离；红色点代表复检队列，不参与准确率统计。</p>
+          <h3 className="mb-1 text-lg font-bold text-white">光谱特征空间</h3>
+          <p className="mb-4 text-xs text-white/45">由真实 R210 反射率计算：短波段均值对比近红外均值，不再使用演示散点。</p>
           <div className="min-h-[400px] flex-1">
             <SafeEChart option={scatterOption} style={{ height: "100%", width: "100%" }} />
           </div>
           <div className="mt-4 rounded-xl border border-white/12 bg-white/6 p-4">
-            <div className="text-sm font-bold text-white">复检原因</div>
+            <div className="text-sm font-bold text-white">真实质检规则</div>
             <div className="mt-2 grid gap-1.5 text-xs leading-5 text-white/72">
-              <span>光谱位置偏离主簇</span>
-              <span>SSC 低于 8.5 或糖酸比低于 12</span>
-              <span>样本字段缺失或需要人工复核</span>
+              <span>覆盖率阈值：{Math.round(dashboardModelMetrics.minCoverageRatio * 100)}%</span>
+              <span>有效波段阈值：{dashboardModelMetrics.minValidBands} / {dashboardModelMetrics.wavelengthCount}</span>
+              <span>展示置信度固定：{dashboardModelMetrics.displayedConfidence}%</span>
             </div>
           </div>
         </motion.div>
@@ -2323,7 +2264,7 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
             className="glass-panel flex-1 rounded-2xl p-6"
           >
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">近期样本记录</h3>
+              <h3 className="text-lg font-bold text-white">真实样本记录</h3>
               <span className="relative flex h-3 w-3">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500"></span>
@@ -2345,7 +2286,7 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
                   <div className="text-right">
                     <div
                       className={`mb-1 inline-block rounded-full px-2 py-1 text-xs ${
-                        item.status === "可分级" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                        item.status === "真实样本" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                       }`}
                     >
                       {item.status}
@@ -2356,10 +2297,11 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
               ))}
             </div>
 
-            <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium text-orange-200 transition-colors hover:bg-white/6">
-              查看全部样本记录
-              <ArrowRight size={16} />
-            </button>
+            <div className="mt-4 grid gap-2 rounded-xl border border-white/12 bg-white/6 p-4 text-xs leading-5 text-white/70">
+              <span>产地分类：R210 SG+SNV + RFE20 + SVM</span>
+              <span>糖度回归：R210 SG2+SNV + RFE30 + PLSR</span>
+              <span>复检触发：当前代表样本 {dashboardReviewCount} 条</span>
+            </div>
           </motion.div>
         </div>
       </div>
@@ -2370,8 +2312,8 @@ function DashboardWorkspace({ tab }: { tab: TabConfig }) {
         transition={{ delay: 0.48 }}
         className="glass-panel rounded-2xl p-6"
       >
-        <h3 className="mb-1 text-lg font-bold text-white">近 30 批样本的糖度与酸度变化</h3>
-        <p className="mb-4 text-xs text-white/45">数据口径：2026-03-12 至 2026-04-10 批次均值；左轴 SSC，右轴 TA。</p>
+        <h3 className="mb-1 text-lg font-bold text-white">R210 原始光谱曲线</h3>
+        <p className="mb-4 text-xs text-white/45">从真实样本中抽取展示点，完整波段为 {dashboardModelMetrics.wavelengthCount} 个；代表样本平均糖酸比 {dashboardAverageRatio}。</p>
         <div className="h-[300px]">
           <SafeEChart option={trendOption} style={{ height: "100%", width: "100%" }} />
         </div>

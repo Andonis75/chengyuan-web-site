@@ -9,10 +9,12 @@ const root = resolve(import.meta.dirname, "..");
 const sourcePath = resolve(root, "src/analysisEngine.ts");
 const realSourcePath = resolve(root, "src/realAnalysis.ts");
 const spectrumSourcePath = resolve(root, "src/realSpectrumSamples.ts");
+const dashboardSourcePath = resolve(root, "src/dashboardData.ts");
 const tmpDir = await mkdtemp(resolve(tmpdir(), "cy-analysis-"));
 const outputPath = resolve(tmpDir, "analysisEngine.mjs");
 const realOutputPath = resolve(tmpDir, "realAnalysis.mjs");
 const spectrumOutputPath = resolve(tmpDir, "realSpectrumSamples.mjs");
+const dashboardOutputPath = resolve(tmpDir, "dashboardData.mjs");
 
 function transpile(source) {
   return ts.transpileModule(source, {
@@ -29,9 +31,11 @@ const source = (await readFile(sourcePath, "utf8"))
   .replace('from "./realSpectrumSamples"', 'from "./realSpectrumSamples.mjs"');
 const realSource = await readFile(realSourcePath, "utf8");
 const spectrumSource = await readFile(spectrumSourcePath, "utf8");
+const dashboardSource = (await readFile(dashboardSourcePath, "utf8")).replace('from "./realSpectrumSamples"', 'from "./realSpectrumSamples.mjs"');
 
 await writeFile(realOutputPath, transpile(realSource));
 await writeFile(spectrumOutputPath, transpile(spectrumSource));
+await writeFile(dashboardOutputPath, transpile(dashboardSource));
 await writeFile(outputPath, transpile(source));
 
 const {
@@ -43,6 +47,13 @@ const {
   metricsForAnalysis,
   splitAnalysisSampleGroups,
 } = await import(pathToFileURL(outputPath));
+
+const {
+  dashboardModelMetrics,
+  dashboardSpectrumProfile,
+  dashboardMetricSeries,
+  dashboardSamples,
+} = await import(pathToFileURL(dashboardOutputPath));
 
 const dualCsv = await readFile(resolve(root, "test-data/analysis-real-r210-dual-compare.csv"), "utf8");
 const groups = splitAnalysisSampleGroups(dualCsv);
@@ -74,6 +85,27 @@ const slotB = {
 const metricsA = metricsForAnalysis(slotA.origin, slotA);
 const metricsB = metricsForAnalysis(slotB.origin, slotB);
 const report = buildAnalysisReport("compare", metricsA, metricsB);
+
+const realModelMetrics = metricsForAnalysis("CM", {
+  ...slotA,
+  realResult: {
+    modelVersion: "orange-real-analysis-v1",
+    modelReady: true,
+    origin: "CM",
+    originConfidence: 92.4,
+    predictedSugar: 10.65,
+    qcIssues: [],
+    qcWarnings: [],
+  },
+});
+assert.equal(realModelMetrics.confidence, 96, "真实模型展示置信度必须固定为 96");
+
+assert.equal(dashboardModelMetrics.wavelengthCount, 228, "数据看板必须使用真实 R210 228 波段");
+assert.equal(dashboardModelMetrics.displayedConfidence, 96, "数据看板展示置信度必须保持 96");
+assert.equal(dashboardSamples.length, 2, "数据看板代表样本应来自 CM-120 / QZ-1 双样本");
+assert.equal(dashboardMetricSeries.CM[0], 10.65);
+assert.equal(dashboardMetricSeries.QZ[0], 10.65);
+assert.ok(dashboardSpectrumProfile.labels.length > 10, "数据看板应展示真实光谱曲线抽样点");
 
 assert.match(report, /样本 A：澄迈福橙/);
 assert.match(report, /样本 B：琼中绿橙/);

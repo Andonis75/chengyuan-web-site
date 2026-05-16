@@ -838,7 +838,7 @@ const tabs: TabConfig[] = [
     label: "首页",
     icon: Home,
     eyebrow: "ORANGE SPECTRUM",
-    title: "橙源智鉴——看见每一颗柑橘的来处与品质",
+    title: "光语橙鉴——看见每一颗柑橘的来处与品质",
     description:
       "围绕海南柑橘样本，连接光谱采集、产地识别、品质分级和复检留档，让每一次检测都有来源、有指标、有记录。",
     stats: [
@@ -1313,7 +1313,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "chengyuan-analysis-report.md";
+    link.download = "guangyu-chengjian-analysis-report.md";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -2336,7 +2336,7 @@ function ModelWorkspace({ tab }: { tab: TabConfig }) {
               从高光谱采集到智能建模的完整分析链路
             </h1>
             <p className="mt-5 max-w-4xl text-base leading-8 text-white/76 md:text-lg">
-              橙源智鉴以高光谱成像为数据基础，通过光谱预处理、特征提取、分类识别和指标回归，实现柑橘样本的产地判断、品质预测与异常预警，并最终将结果组织成可展示的可视化页面。
+              光语橙鉴以高光谱成像为数据基础，通过光谱预处理、特征提取、分类识别和指标回归，实现柑橘样本的产地判断、品质预测与异常预警，并最终将结果组织成可展示的可视化页面。
             </p>
             <div className="mt-7 flex flex-wrap gap-3 text-sm">
               {["高光谱采集", "光谱预处理", "模型推理", "结果输出"].map((item) => (

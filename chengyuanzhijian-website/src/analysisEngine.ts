@@ -186,11 +186,11 @@ export function metricsForAnalysis(
   slot: AnalysisSlot,
   referenceMetrics: AnalysisReferenceMetrics = defaultAnalysisReferenceMetrics,
 ): AnalysisMetrics {
-  const modelOrigin = slot.realResult?.modelReady && slot.realResult.origin !== "REVIEW" ? slot.realResult.origin : origin;
+  const modelOrigin = origin === "REVIEW" ? "REVIEW" : slot.realResult?.modelReady && slot.realResult.origin !== "REVIEW" ? slot.realResult.origin : origin;
   const base = modelOrigin === "QZ" ? referenceMetrics.QZ : referenceMetrics.CM;
-  const hasRealSugar = slot.realResult?.predictedSugar !== undefined;
+  const hasRealSugar = Boolean(slot.realResult?.modelReady && slot.realResult.predictedSugar !== undefined);
   const qualityReady = slot.source === "sample" || hasRealSugar || Boolean(slot.parsedMetrics?.ssc !== undefined && slot.parsedMetrics?.ratio !== undefined);
-  const ssc = slot.realResult?.predictedSugar ?? slot.parsedMetrics?.ssc ?? (slot.source === "sample" ? base.ssc : 0);
+  const ssc = hasRealSugar ? slot.realResult!.predictedSugar! : slot.parsedMetrics?.ssc ?? (slot.source === "sample" ? base.ssc : 0);
   const ta = slot.parsedMetrics?.ta ?? (slot.source === "sample" ? base.ta : 0);
   const ratio = slot.parsedMetrics?.ratio ?? (slot.source === "sample" ? base.ratio : 0);
   const vc = slot.parsedMetrics?.vc ?? (slot.source === "sample" ? base.vc : 0);
@@ -253,8 +253,8 @@ export function metricsForAnalysis(
   };
 }
 
-function metricValue(value: number, digits = 2) {
-  return value ? value.toFixed(digits) : "未实测";
+function hasMeasuredMetric(value: number) {
+  return Number.isFinite(value) && value > 0;
 }
 
 function sampleReportLine(label: string, metrics: AnalysisMetrics) {
@@ -263,9 +263,9 @@ function sampleReportLine(label: string, metrics: AnalysisMetrics) {
     `产地置信度 ${metrics.confidence ? `${metrics.confidence.toFixed(1)}%` : "不足"}`,
     `等级 ${metrics.grade}`,
     `SSC ${metrics.qualityReady ? metrics.ssc.toFixed(2) : "缺失"}`,
-    `TA ${metricValue(metrics.ta, 3)}`,
-    `糖酸比 ${metricValue(metrics.ratio)}`,
-    `VC ${metricValue(metrics.vc)}`,
+    ...(hasMeasuredMetric(metrics.ta) ? [`TA ${metrics.ta.toFixed(3)}`] : []),
+    ...(hasMeasuredMetric(metrics.ratio) ? [`糖酸比 ${metrics.ratio.toFixed(2)}`] : []),
+    ...(hasMeasuredMetric(metrics.vc) ? [`VC ${metrics.vc.toFixed(2)}`] : []),
   ].join("，");
 }
 
@@ -284,8 +284,20 @@ export function buildAnalysisReport(mode: AnalysisMode, a: AnalysisMetrics, b?: 
       "",
       "## 对比摘要",
       `SSC 差值（B-A）：${a.qualityReady && b.qualityReady ? `${(b.ssc - a.ssc >= 0 ? "+" : "")}${(b.ssc - a.ssc).toFixed(2)}` : "缺失"}`,
-      `糖酸比差值（B-A）：${a.ratio && b.ratio ? `${(b.ratio - a.ratio >= 0 ? "+" : "")}${(b.ratio - a.ratio).toFixed(2)}` : "未实测"}`,
     );
+    if (hasMeasuredMetric(a.ta) && hasMeasuredMetric(b.ta)) {
+      lines.push(`TA 差值（B-A）：${b.ta - a.ta >= 0 ? "+" : ""}${(b.ta - a.ta).toFixed(3)}`);
+    }
+    if (hasMeasuredMetric(a.ratio) && hasMeasuredMetric(b.ratio)) {
+      lines.push(`糖酸比差值（B-A）：${b.ratio - a.ratio >= 0 ? "+" : ""}${(b.ratio - a.ratio).toFixed(2)}`);
+    }
+    if (hasMeasuredMetric(a.vc) && hasMeasuredMetric(b.vc)) {
+      lines.push(`VC 差值（B-A）：${b.vc - a.vc >= 0 ? "+" : ""}${(b.vc - a.vc).toFixed(2)}`);
+    }
+  }
+
+  if (![a, b].filter(Boolean).every((item) => item && hasMeasuredMetric(item.ta) && hasMeasuredMetric(item.ratio) && hasMeasuredMetric(item.vc))) {
+    lines.push("", "补充说明：上传文件未包含完整 TA、糖酸比或 VC 实测列时，报告只保留当前模型可支撑的产地与 SSC 结论。");
   }
 
   lines.push(
@@ -306,13 +318,32 @@ export function buildUploadedAnalysisSlot(fileName: string, text: string, realMo
   const realResult = realModel ? analyzeRealR210Spectrum(text, realModel) : null;
   const byName = detectAnalysisOriginFromName(fileName);
   const bySpectrum = detectAnalysisOriginFromSpectrum(spectrum);
-  const origin = realResult?.modelReady && realResult.origin !== "REVIEW" ? realResult.origin : byName ?? bySpectrum;
+  const originConflict = Boolean(realResult?.modelReady && byName && realResult.origin !== "REVIEW" && realResult.origin !== byName);
+  const checkedRealResult =
+    realResult && originConflict
+      ? {
+          ...realResult,
+          qcWarnings: [
+            ...realResult.qcWarnings,
+            `文件名标注为 ${byName === "CM" ? "澄迈" : "琼中"}，模型判定为 ${realResult.origin === "CM" ? "澄迈" : "琼中"}，建议复检确认。`,
+          ],
+        }
+      : realResult;
+  const origin = checkedRealResult?.qcIssues.length
+    ? "REVIEW"
+    : originConflict
+      ? "REVIEW"
+      : checkedRealResult?.modelReady && checkedRealResult.origin !== "REVIEW"
+        ? checkedRealResult.origin
+        : byName ?? bySpectrum;
   const qualityReady = parsedMetrics.ssc !== undefined && parsedMetrics.ratio !== undefined;
   const message =
-    realResult?.modelReady
-      ? `真实 R210 模型已完成推理：覆盖率 ${(realResult.coverageRatio * 100).toFixed(1)}%，预测糖度 ${realResult.predictedSugar?.toFixed(2)}，模型版本 ${realResult.modelVersion}。`
-      : realResult?.qcIssues.length
-        ? `真实模型质检未通过：${realResult.qcIssues.join("；")}`
+    originConflict
+      ? `真实 R210 模型已完成推理，但文件名标注与模型判定不一致，已转入复检。覆盖率 ${(checkedRealResult!.coverageRatio * 100).toFixed(1)}%，模型版本 ${checkedRealResult!.modelVersion}。`
+      : checkedRealResult?.modelReady
+        ? `真实 R210 模型已完成推理：覆盖率 ${(checkedRealResult.coverageRatio * 100).toFixed(1)}%，预测糖度 ${checkedRealResult.predictedSugar?.toFixed(2)}，模型版本 ${checkedRealResult.modelVersion}。`
+      : checkedRealResult?.qcIssues.length
+        ? `真实模型质检未通过：${checkedRealResult.qcIssues.join("；")}`
         : spectrum.length < 60
           ? `只解析到 ${spectrum.length} 个有效波段，低于 60 个波段，不做确定产地判断。`
           : origin === "REVIEW"
@@ -327,8 +358,8 @@ export function buildUploadedAnalysisSlot(fileName: string, text: string, realMo
     origin,
     message,
     source: "upload",
-    realResult,
+    realResult: checkedRealResult,
     parsedMetrics,
-    qualityReady: Boolean(realResult?.modelReady) || qualityReady,
+    qualityReady: Boolean(checkedRealResult?.modelReady && !originConflict) || qualityReady,
   };
 }

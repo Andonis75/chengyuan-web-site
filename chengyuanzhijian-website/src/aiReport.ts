@@ -42,18 +42,29 @@ export async function requestAiReportSummary(payload: AiReportPayload, endpoint 
 
 export function buildLocalAiReportSummary(payload: AiReportPayload) {
   const { mode, sampleA, sampleB } = payload;
+  const hasMeasuredMetric = (value: number) => Number.isFinite(value) && value > 0;
+  const sampleLine = (label: string, sample: AnalysisMetrics) =>
+    [
+      `${label} 判定为 ${sample.originName}`,
+      `等级 ${sample.grade}`,
+      `SSC ${sample.qualityReady ? sample.ssc.toFixed(2) : "缺失"}`,
+      ...(hasMeasuredMetric(sample.ratio) ? [`糖酸比 ${sample.ratio.toFixed(2)}`] : []),
+    ].join("，") + "。";
   const lines = [
     "本地多维总结",
-    `样本 A 判定为 ${sampleA.originName}，等级 ${sampleA.grade}，SSC ${sampleA.qualityReady ? sampleA.ssc.toFixed(2) : "缺失"}，糖酸比 ${sampleA.ratio ? sampleA.ratio.toFixed(2) : "未实测"}。`,
+    sampleLine("样本 A", sampleA),
   ];
 
   if (mode === "compare" && sampleB) {
     const sscDelta = sampleB.ssc - sampleA.ssc;
-    const ratioDelta = sampleB.ratio - sampleA.ratio;
     lines.push(
-      `样本 B 判定为 ${sampleB.originName}，等级 ${sampleB.grade}，SSC ${sampleB.qualityReady ? sampleB.ssc.toFixed(2) : "缺失"}，糖酸比 ${sampleB.ratio ? sampleB.ratio.toFixed(2) : "未实测"}。`,
-      `对比看，B 相对 A 的 SSC ${sscDelta >= 0 ? "高" : "低"} ${Math.abs(sscDelta).toFixed(2)}，糖酸比 ${ratioDelta >= 0 ? "高" : "低"} ${Math.abs(ratioDelta).toFixed(2)}。`,
+      sampleLine("样本 B", sampleB),
+      `对比看，B 相对 A 的 SSC ${sscDelta >= 0 ? "高" : "低"} ${Math.abs(sscDelta).toFixed(2)}。`,
     );
+    if (hasMeasuredMetric(sampleA.ratio) && hasMeasuredMetric(sampleB.ratio)) {
+      const ratioDelta = sampleB.ratio - sampleA.ratio;
+      lines.push(`糖酸比方面，B 相对 A ${ratioDelta >= 0 ? "高" : "低"} ${Math.abs(ratioDelta).toFixed(2)}。`);
+    }
   }
 
   const warnings = [sampleA.reviewReason, sampleB?.reviewReason].filter(Boolean);

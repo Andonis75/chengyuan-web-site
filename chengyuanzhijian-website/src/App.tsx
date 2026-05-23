@@ -1077,17 +1077,50 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     { label: "样本 A", metrics: metricsA, tone: "border-orange-200/18 bg-orange-300/10" },
     { label: "样本 B", metrics: metricsB, tone: "border-emerald-200/18 bg-emerald-300/10" },
   ];
+  const hasMetricValue = (value: number) => Number.isFinite(value) && value > 0;
+  const sampleMetricRows = (metrics: AnalysisMetrics) => [
+    ["置信度", metrics.confidence ? `${metrics.confidence.toFixed(1)}%` : "不足"],
+    ["SSC", metrics.qualityReady ? metrics.ssc.toFixed(2) : "缺失"],
+    ...(hasMetricValue(metrics.ta) ? [["TA", metrics.ta.toFixed(3)]] : []),
+    ...(hasMetricValue(metrics.ratio) ? [["糖酸比", metrics.ratio.toFixed(2)]] : []),
+    ...(hasMetricValue(metrics.vc) ? [["VC", metrics.vc.toFixed(2)]] : []),
+  ];
+  const singleResultRows = [
+    ["置信度", resultMetrics.confidence ? `${resultMetrics.confidence.toFixed(1)}%` : "不足"],
+    ["等级", hasResult ? resultMetrics.grade : "-"],
+    ["SSC", resultMetrics.qualityReady ? resultMetrics.ssc.toFixed(2) : "缺失"],
+    ...(hasMetricValue(resultMetrics.ta) ? [["TA", resultMetrics.ta.toFixed(3)]] : []),
+    ...(hasMetricValue(resultMetrics.ratio) ? [["糖酸比", resultMetrics.ratio.toFixed(2)]] : []),
+    ...(hasMetricValue(resultMetrics.vc) ? [["VC", resultMetrics.vc.toFixed(2)]] : []),
+  ];
   const formatDelta = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
   const compareSummaryRows = [
-    ["SSC 差值", metricsA.qualityReady && metricsB.qualityReady ? `B-A ${formatDelta(metricsB.ssc - metricsA.ssc)}` : "缺失"],
-    ["糖酸比差值", metricsA.ratio && metricsB.ratio ? `B-A ${formatDelta(metricsB.ratio - metricsA.ratio)}` : "未实测"],
+    ...(metricsA.qualityReady && metricsB.qualityReady ? [["SSC 差值", `B-A ${formatDelta(metricsB.ssc - metricsA.ssc)}`]] : []),
+    ...(hasMetricValue(metricsA.ta) && hasMetricValue(metricsB.ta) ? [["TA 差值", `B-A ${formatDelta(metricsB.ta - metricsA.ta)}`]] : []),
+    ...(hasMetricValue(metricsA.ratio) && hasMetricValue(metricsB.ratio) ? [["糖酸比差值", `B-A ${formatDelta(metricsB.ratio - metricsA.ratio)}`]] : []),
+    ...(hasMetricValue(metricsA.vc) && hasMetricValue(metricsB.vc) ? [["VC 差值", `B-A ${formatDelta(metricsB.vc - metricsA.vc)}`]] : []),
   ];
+  const compareMissingText =
+    mode === "compare" &&
+    hasResult &&
+    (!hasMetricValue(metricsA.ta) ||
+      !hasMetricValue(metricsB.ta) ||
+      !hasMetricValue(metricsA.ratio) ||
+      !hasMetricValue(metricsB.ratio) ||
+      !hasMetricValue(metricsA.vc) ||
+      !hasMetricValue(metricsB.vc))
+      ? "上传文件未包含 TA、糖酸比或 VC 实测列，当前对比只展示模型可支撑的产地与 SSC；其他指标建议补充理化检测后再生成完整分级。"
+      : "";
+  const singleMissingText =
+    mode === "single" && hasResult && (!hasMetricValue(resultMetrics.ta) || !hasMetricValue(resultMetrics.ratio) || !hasMetricValue(resultMetrics.vc))
+      ? "上传文件未包含 TA、糖酸比或 VC 实测列，当前只展示模型可支撑的产地与 SSC；其他指标建议补充理化检测。"
+      : "";
   const compareHasReview = compareResultCards.some(({ metrics }) => metrics.grade === "待复检");
   const compareReviewText =
     compareResultCards
       .map(({ label, metrics }) => (metrics.reviewReason ? `${label}：${metrics.reviewReason}` : null))
       .filter(Boolean)
-      .join("；") || "两个样本字段完整，产地和品质结论可以进入报告留档。";
+      .join("；") || compareMissingText || "两个样本字段完整，产地和品质结论可以进入报告留档。";
   const resultModelVersion = mode === "compare" ? metricsA.modelVersion ?? metricsB.modelVersion : resultMetrics.modelVersion;
   const resultPassed = hasResult && (mode === "compare" ? !compareHasReview : resultMetrics.grade !== "待复检");
 
@@ -1140,48 +1173,57 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
   );
 
   const metricOption = useMemo(
-    () => ({
-      backgroundColor: "transparent",
-      tooltip: {
-        trigger: "axis",
-        backgroundColor: "rgba(5, 8, 7, 0.96)",
-        borderColor: "rgba(255,255,255,0.12)",
-        textStyle: { color: "#fff" },
-      },
-      grid: { top: 18, left: 38, right: 12, bottom: 32 },
-      xAxis: {
-        type: "category",
-        data: ["SSC", "TA x10", "糖酸比", "VC/10"],
-        axisLabel: { color: "rgba(255,255,255,0.58)", fontSize: 10 },
-        axisLine: { lineStyle: { color: "rgba(255,255,255,0.14)" } },
-      },
-      yAxis: {
-        type: "value",
-        axisLabel: { color: "rgba(255,255,255,0.48)", fontSize: 10 },
-        splitLine: { lineStyle: { color: "rgba(255,255,255,0.08)", type: "dashed" } },
-      },
-      series:
-        mode === "compare"
-          ? [
-              { name: "样本 A", type: "bar", barWidth: "26%", data: [metricsA.ssc, metricsA.ta * 10, metricsA.ratio, metricsA.vc / 10], itemStyle: { color: "#fb923c", borderRadius: [6, 6, 0, 0] } },
-              { name: "样本 B", type: "bar", barWidth: "26%", data: [metricsB.ssc, metricsB.ta * 10, metricsB.ratio, metricsB.vc / 10], itemStyle: { color: "#6ee7b7", borderRadius: [6, 6, 0, 0] } },
-            ]
-          : [
-              {
-                name: "样本 A",
-                type: "bar",
-                barWidth: "42%",
-                data: [metricsA.ssc, metricsA.ta * 10, metricsA.ratio, metricsA.vc / 10],
-                itemStyle: {
-                  borderRadius: [6, 6, 0, 0],
-                  color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                    { offset: 0, color: "#fed7aa" },
-                    { offset: 1, color: "#f97316" },
-                  ]),
+    () => {
+      const items = [
+        { label: "SSC", a: metricsA.qualityReady ? metricsA.ssc : 0, b: metricsB.qualityReady ? metricsB.ssc : 0, show: metricsA.qualityReady || metricsB.qualityReady },
+        { label: "TA x10", a: metricsA.ta * 10, b: metricsB.ta * 10, show: hasMetricValue(metricsA.ta) || hasMetricValue(metricsB.ta) },
+        { label: "糖酸比", a: metricsA.ratio, b: metricsB.ratio, show: hasMetricValue(metricsA.ratio) || hasMetricValue(metricsB.ratio) },
+        { label: "VC/10", a: metricsA.vc / 10, b: metricsB.vc / 10, show: hasMetricValue(metricsA.vc) || hasMetricValue(metricsB.vc) },
+      ].filter((item) => item.show);
+
+      return {
+        backgroundColor: "transparent",
+        tooltip: {
+          trigger: "axis",
+          backgroundColor: "rgba(5, 8, 7, 0.96)",
+          borderColor: "rgba(255,255,255,0.12)",
+          textStyle: { color: "#fff" },
+        },
+        grid: { top: 18, left: 38, right: 12, bottom: 32 },
+        xAxis: {
+          type: "category",
+          data: items.map((item) => item.label),
+          axisLabel: { color: "rgba(255,255,255,0.58)", fontSize: 10 },
+          axisLine: { lineStyle: { color: "rgba(255,255,255,0.14)" } },
+        },
+        yAxis: {
+          type: "value",
+          axisLabel: { color: "rgba(255,255,255,0.48)", fontSize: 10 },
+          splitLine: { lineStyle: { color: "rgba(255,255,255,0.08)", type: "dashed" } },
+        },
+        series:
+          mode === "compare"
+            ? [
+                { name: "样本 A", type: "bar", barWidth: "26%", data: items.map((item) => item.a), itemStyle: { color: "#fb923c", borderRadius: [6, 6, 0, 0] } },
+                { name: "样本 B", type: "bar", barWidth: "26%", data: items.map((item) => item.b), itemStyle: { color: "#6ee7b7", borderRadius: [6, 6, 0, 0] } },
+              ]
+            : [
+                {
+                  name: "样本 A",
+                  type: "bar",
+                  barWidth: "42%",
+                  data: items.map((item) => item.a),
+                  itemStyle: {
+                    borderRadius: [6, 6, 0, 0],
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                      { offset: 0, color: "#fed7aa" },
+                      { offset: 1, color: "#f97316" },
+                    ]),
+                  },
                 },
-              },
-            ],
-    }),
+              ],
+      };
+    },
     [metricsA, metricsB, mode],
   );
 
@@ -1518,12 +1560,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
                     </div>
                     <div className="mt-2 text-lg font-semibold text-white">{metrics.originName}</div>
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      {[
-                        ["置信度", metrics.confidence ? `${metrics.confidence.toFixed(1)}%` : "不足"],
-                        ["SSC", metrics.qualityReady ? metrics.ssc.toFixed(2) : "缺失"],
-                        ["糖酸比", metrics.ratio ? metrics.ratio.toFixed(2) : "未实测"],
-                        ["VC", metrics.vc ? metrics.vc.toFixed(2) : "未实测"],
-                      ].map(([label, value]) => (
+                      {sampleMetricRows(metrics).map(([label, value]) => (
                         <div key={label} className="rounded-xl bg-black/16 px-3 py-2">
                           <div className="text-[11px] text-white/42">{label}</div>
                           <div className="mt-1 text-sm font-semibold text-white">{value}</div>
@@ -1532,6 +1569,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
                     </div>
                   </div>
                 ))}
+                {compareSummaryRows.length ? (
                 <div className="grid grid-cols-2 gap-3">
                   {compareSummaryRows.map(([label, value]) => (
                     <div key={label} className="analysis-kpi rounded-2xl p-4">
@@ -1540,15 +1578,11 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
                     </div>
                   ))}
                 </div>
+                ) : null}
               </div>
             ) : (
               <div className="mt-5 grid grid-cols-2 gap-3">
-                {[
-                  ["置信度", resultMetrics.confidence ? `${resultMetrics.confidence.toFixed(1)}%` : "不足"],
-                  ["等级", hasResult ? resultMetrics.grade : "-"],
-                  ["SSC", resultMetrics.qualityReady ? resultMetrics.ssc.toFixed(2) : "缺失"],
-                  ["糖酸比", resultMetrics.ratio ? resultMetrics.ratio.toFixed(2) : "未实测"],
-                ].map(([label, value]) => (
+                {singleResultRows.map(([label, value]) => (
                   <div key={label} className="analysis-kpi rounded-2xl p-4">
                     <div className="text-xs text-white/46">{label}</div>
                     <div className="mt-1 text-xl font-semibold text-white">{value}</div>
@@ -1569,7 +1603,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
               </div>
             ) : (
               <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-7 text-white/62">
-                {hasResult ? (mode === "compare" ? compareReviewText : resultMetrics.reviewReason ?? "样本字段完整，产地和品质结论可以进入报告留档。") : "上传样本后按钮才会启用；也可以载入示例样本查看工作台效果。"}
+                {hasResult ? (mode === "compare" ? compareReviewText : resultMetrics.reviewReason ?? (singleMissingText || "样本字段完整，产地和品质结论可以进入报告留档。")) : "上传样本后按钮才会启用；也可以载入示例样本查看工作台效果。"}
                 {hasResult && resultModelVersion ? (
                   <div className="mt-3 border-t border-white/10 pt-3 text-xs leading-6 text-white/46">
                     模型版本：{resultModelVersion}

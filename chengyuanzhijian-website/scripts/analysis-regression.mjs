@@ -71,7 +71,7 @@ assert.equal(analysisWavelengths.length, 228, "默认光谱应使用真实 R210 
 assert.equal(analysisSpectrumCM.length, analysisWavelengths.length);
 assert.equal(analysisSpectrumQZ.length, analysisWavelengths.length);
 
-const wideVector = Array.from({ length: 228 }, (_, index) => Number((0.39 - index * 0.0007 + Math.sin(index / 9) * 0.01).toFixed(6)));
+const wideVector = analysisSpectrumQZ;
 const wideCsv = [
   ["case_type", "sample_id", ...wideVector.map((_, index) => `f_${String(index + 1).padStart(4, "0")}`), "area_001", "area_002"].join(","),
   ["QZ", "QZ-122", ...wideVector, 193, 192].join(","),
@@ -84,9 +84,27 @@ assert.equal(parseAnalysisSpectrum(wideCsv).length, 228, "宽表 CSV 应识别�
 assert.equal(parseAnalysisSpectrum(jsonVector).length, 228, "JSON spectrum 数组应可解析");
 assert.equal(parseAnalysisSpectrum(datVector).length, 228, "DAT/TXT 向量应可解析");
 
-const wideSlot = buildUploadedAnalysisSlot("17_QZ_QZ-122.csv", wideCsv, artifact);
+const wideSlot = buildUploadedAnalysisSlot("uploaded-wide-spectrum.csv", wideCsv, artifact);
 assert.equal(wideSlot.spectrum?.length, 228, "宽表 CSV 上传后应保留 228 个光谱点");
 assert.equal(wideSlot.realResult?.modelReady, true, "宽表 CSV 应能进入真实 R210 模型");
+const wideMetrics = metricsForAnalysis(wideSlot.origin, wideSlot);
+const wideReport = buildAnalysisReport("single", wideMetrics);
+assert.doesNotMatch(wideReport, /未实测/, "上传光谱缺少理化列时，报告不应输出未实测占位项");
+assert.doesNotMatch(wideReport, /糖酸比 未实测|VC 未实测|TA 未实测/);
+assert.match(wideReport, /只保留当前模型可支撑的产地与 SSC 结论/);
+
+const conflictingSlot = buildUploadedAnalysisSlot("17_QZ_QZ-122.csv", wideCsv, artifact);
+if (conflictingSlot.realResult?.origin !== "QZ") {
+  assert.equal(conflictingSlot.origin, "REVIEW", "文件名标注与模型产地冲突时应转复检");
+  assert.match(conflictingSlot.message ?? "", /标注与模型判定不一致/);
+}
+
+const invalidSugarArtifact = structuredClone(artifact);
+invalidSugarArtifact.models.sugar.model.intercept = -1;
+invalidSugarArtifact.models.sugar.model.coef = invalidSugarArtifact.models.sugar.model.coef.map(() => 0);
+const invalidSugarSlot = buildUploadedAnalysisSlot("uploaded-invalid-sugar.csv", wideCsv, invalidSugarArtifact);
+assert.equal(invalidSugarSlot.realResult?.modelReady, false, "糖度预测超出物理范围时不应当作正常模型结果展示");
+assert.match(invalidSugarSlot.realResult?.qcIssues.join("；") ?? "", /预测糖度/);
 
 const slotA = {
   fileName: "CM-120.csv",

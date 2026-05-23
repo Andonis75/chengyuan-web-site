@@ -160,7 +160,27 @@ export function analyzeRealR210Spectrum(text: string, artifact: RealAnalysisMode
 
   qcWarnings.push("真实模型当前输出产地与糖度；酸度、糖酸比、VC 优先使用上传文件中的实测列。");
   if (originConfidence < 72) qcWarnings.push("产地判别边界距离偏低，建议人工复核。");
-  if (predictedSugar < artifact.qualityRules.reviewSugarBelow) qcWarnings.push("预测糖度低于复检线，建议复测或人工分拣。");
+  if (predictedSugar < 0 || predictedSugar > 25) {
+    qcIssues.push(`预测糖度 ${predictedSugar.toFixed(2)} 超出可展示范围，建议复测或重新导出光谱。`);
+  } else if (predictedSugar < artifact.qualityRules.reviewSugarBelow) {
+    qcWarnings.push("预测糖度低于复检线，建议复测或人工分拣。");
+  }
+
+  if (qcIssues.length) {
+    return {
+      modelVersion: artifact.modelVersion,
+      origin: "REVIEW",
+      originConfidence,
+      predictedSugar,
+      coverageRatio,
+      validBands: points.length,
+      inputRange,
+      modelRange,
+      qcIssues,
+      qcWarnings,
+      modelReady: false,
+    };
+  }
 
   return {
     modelVersion: artifact.modelVersion,

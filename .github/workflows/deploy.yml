@@ -1,4 +1,4 @@
-name: Deploy 光语橙鉴 to GitHub Pages
+name: Deploy 橙源智鉴 to GitHub Pages
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "guangyu-chengjian-pages"
+  group: "chengyuan-zhijian-pages"
   cancel-in-progress: false
 
 jobs:

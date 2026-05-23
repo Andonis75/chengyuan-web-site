@@ -286,7 +286,7 @@ function sampleReportLine(label: string, metrics: AnalysisMetrics) {
 
 export function buildAnalysisReport(mode: AnalysisMode, a: AnalysisMetrics, b?: AnalysisMetrics) {
   const lines = [
-    "# 光语橙鉴样本分析报告",
+    "# 橙源智鉴样本分析报告",
     "",
     `分析模式：${mode === "single" ? "单样本" : "双样本对比"}`,
     `模型版本：${a.modelVersion ?? b?.modelVersion ?? "演示规则 / 未加载真实模型"}`,

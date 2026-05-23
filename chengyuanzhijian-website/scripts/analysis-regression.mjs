@@ -9,11 +9,13 @@ const root = resolve(import.meta.dirname, "..");
 const sourcePath = resolve(root, "src/analysisEngine.ts");
 const realSourcePath = resolve(root, "src/realAnalysis.ts");
 const spectrumSourcePath = resolve(root, "src/realSpectrumSamples.ts");
+const parserSourcePath = resolve(root, "src/spectrumParser.ts");
 const dashboardSourcePath = resolve(root, "src/dashboardData.ts");
 const tmpDir = await mkdtemp(resolve(tmpdir(), "cy-analysis-"));
 const outputPath = resolve(tmpDir, "analysisEngine.mjs");
 const realOutputPath = resolve(tmpDir, "realAnalysis.mjs");
 const spectrumOutputPath = resolve(tmpDir, "realSpectrumSamples.mjs");
+const parserOutputPath = resolve(tmpDir, "spectrumParser.mjs");
 const dashboardOutputPath = resolve(tmpDir, "dashboardData.mjs");
 
 function transpile(source) {
@@ -28,23 +30,28 @@ function transpile(source) {
 
 const source = (await readFile(sourcePath, "utf8"))
   .replace('from "./realAnalysis"', 'from "./realAnalysis.mjs"')
-  .replace('from "./realSpectrumSamples"', 'from "./realSpectrumSamples.mjs"');
-const realSource = await readFile(realSourcePath, "utf8");
+  .replace('from "./realSpectrumSamples"', 'from "./realSpectrumSamples.mjs"')
+  .replace('from "./spectrumParser"', 'from "./spectrumParser.mjs"');
+const realSource = (await readFile(realSourcePath, "utf8")).replace('from "./spectrumParser"', 'from "./spectrumParser.mjs"');
 const spectrumSource = await readFile(spectrumSourcePath, "utf8");
+const parserSource = await readFile(parserSourcePath, "utf8");
 const dashboardSource = (await readFile(dashboardSourcePath, "utf8")).replace('from "./realSpectrumSamples"', 'from "./realSpectrumSamples.mjs"');
 
 await writeFile(realOutputPath, transpile(realSource));
 await writeFile(spectrumOutputPath, transpile(spectrumSource));
+await writeFile(parserOutputPath, transpile(parserSource));
 await writeFile(dashboardOutputPath, transpile(dashboardSource));
 await writeFile(outputPath, transpile(source));
 
 const {
+  buildUploadedAnalysisSlot,
   buildAnalysisReport,
   emptyAnalysisSlot,
   analysisSpectrumCM,
   analysisSpectrumQZ,
   analysisWavelengths,
   metricsForAnalysis,
+  parseAnalysisSpectrum,
   splitAnalysisSampleGroups,
 } = await import(pathToFileURL(outputPath));
 
@@ -63,6 +70,23 @@ assert.equal(groups[1].sampleId, "QZ-1");
 assert.equal(analysisWavelengths.length, 228, "默认光谱应使用真实 R210 波段");
 assert.equal(analysisSpectrumCM.length, analysisWavelengths.length);
 assert.equal(analysisSpectrumQZ.length, analysisWavelengths.length);
+
+const wideVector = Array.from({ length: 228 }, (_, index) => Number((0.39 - index * 0.0007 + Math.sin(index / 9) * 0.01).toFixed(6)));
+const wideCsv = [
+  ["case_type", "sample_id", ...wideVector.map((_, index) => `f_${String(index + 1).padStart(4, "0")}`), "area_001", "area_002"].join(","),
+  ["QZ", "QZ-122", ...wideVector, 193, 192].join(","),
+].join("\n");
+const jsonVector = JSON.stringify({ case_type: "QZ", sample_id: "QZ-63", spectrum: wideVector });
+const datVector = wideVector.join(",");
+const artifact = JSON.parse(await readFile(resolve(root, "public/model-artifacts/orange-real-analysis-v1.json"), "utf8"));
+
+assert.equal(parseAnalysisSpectrum(wideCsv).length, 228, "宽表 CSV 应识别出前段反射率向量");
+assert.equal(parseAnalysisSpectrum(jsonVector).length, 228, "JSON spectrum 数组应可解析");
+assert.equal(parseAnalysisSpectrum(datVector).length, 228, "DAT/TXT 向量应可解析");
+
+const wideSlot = buildUploadedAnalysisSlot("17_QZ_QZ-122.csv", wideCsv, artifact);
+assert.equal(wideSlot.spectrum?.length, 228, "宽表 CSV 上传后应保留 228 个光谱点");
+assert.equal(wideSlot.realResult?.modelReady, true, "宽表 CSV 应能进入真实 R210 模型");
 
 const slotA = {
   fileName: "CM-120.csv",

@@ -73,6 +73,8 @@ import { buildLocalAiReportSummary, requestAiReportSummary } from "./aiReport";
 import { loadRealAnalysisModel, type RealAnalysisModelArtifact } from "./realAnalysis";
 
 const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/^\/+/, "")}`;
+const analysisFileExtensions = ["csv", "txt", "dat", "json", "xlsx"] as const;
+const analysisFileAccept = ".csv,.txt,.dat,.json,.xlsx";
 
 type TabId = "home" | "origins" | "grading" | "policy" | "analysis" | "dashboard" | "model";
 
@@ -848,7 +850,7 @@ const tabs: TabConfig[] = [
     ],
     cards: [
       { title: "检测对象", body: "面向海南柑橘样本，覆盖澄迈福橙与琼中绿橙。", meta: "CM 199 / QZ 200" },
-      { title: "工作流程", body: "上传光谱文件后，系统生成产地匹配、品质分级和复检结论。", meta: "CSV / TXT" },
+      { title: "工作流程", body: "上传光谱文件后，系统生成产地匹配、品质分级和复检结论。", meta: "CSV / TXT / DAT / JSON / XLSX" },
       { title: "复检规则", body: "置信度不足或理化字段缺失的样本，会进入人工复核队列。", meta: "人工复核" },
     ],
   },
@@ -918,7 +920,7 @@ const tabs: TabConfig[] = [
     description:
       "上传 CSV 或 TXT 光谱文件后，系统检查字段、波段数量和理化指标，再生成产地、分级和复检结论。",
     stats: [
-      { label: "格式", value: "CSV / TXT" },
+      { label: "格式", value: "CSV / TXT / DAT / JSON / XLSX" },
       { label: "字段", value: "SSC / TA" },
       { label: "报告", value: "MD" },
     ],
@@ -1235,14 +1237,27 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     resetRunState();
   };
 
-  const handleUpload = (slot: "A" | "B", file: File) => {
+  const readAnalysisFile = async (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!ext || !["csv", "txt"].includes(ext)) {
+    if (ext === "xlsx") {
+      const XLSX = await import("xlsx");
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = sheetName ? workbook.Sheets[sheetName] : null;
+      if (!sheet) throw new Error("Excel 文件里没有可读取的工作表。");
+      return XLSX.utils.sheet_to_csv(sheet);
+    }
+    return file.text();
+  };
+
+  const handleUpload = async (slot: "A" | "B", file: File) => {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    if (!ext || !analysisFileExtensions.includes(ext as (typeof analysisFileExtensions)[number])) {
       const next: AnalysisSlot = {
         fileName: file.name,
         spectrum: null,
         origin: "REVIEW",
-        message: "当前页面只解析 CSV/TXT。Excel、HDR、原始 ENVI 文件需要先导出为文本数值表后再上传。",
+        message: "当前页面支持 CSV、TXT、DAT、JSON、XLSX。HDR、原始 ENVI 文件需要先导出为数值表后再上传。",
         source: "upload",
         qualityReady: false,
       };
@@ -1252,10 +1267,8 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = String(event.target?.result ?? "");
-
+    try {
+      const text = await readAnalysisFile(file);
       const sampleGroups = mode === "compare" ? splitAnalysisSampleGroups(text) : [];
       if (sampleGroups.length >= 2) {
         setSlotA(buildUploadedAnalysisSlot(`${file.name} · ${sampleGroups[0].sampleId}`, sampleGroups[0].text, realModel));
@@ -1268,8 +1281,19 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
       if (slot === "A") setSlotA(next);
       else setSlotB(next);
       resetRunState();
-    };
-    reader.readAsText(file, "utf-8");
+    } catch (error) {
+      const next: AnalysisSlot = {
+        fileName: file.name,
+        spectrum: null,
+        origin: "REVIEW",
+        message: error instanceof Error ? error.message : "文件读取失败，请检查文件是否完整。",
+        source: "upload",
+        qualityReady: false,
+      };
+      if (slot === "A") setSlotA(next);
+      else setSlotB(next);
+      resetRunState();
+    }
   };
 
   const startAnalysis = () => {
@@ -1352,7 +1376,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-bold tracking-[0.18em] text-orange-200/72">SAMPLE {slot}</div>
-          <h3 className="mt-2 text-lg font-semibold text-white">{data.fileName ?? "等待 CSV / TXT 文件"}</h3>
+          <h3 className="mt-2 text-lg font-semibold text-white">{data.fileName ?? "等待光谱文件"}</h3>
           <p className="mt-2 text-sm leading-6 text-white/58">{data.message ?? "可上传本地光谱表，也可以先载入示例样本验证完整流程。"}</p>
         </div>
         <div className={`rounded-full px-3 py-1 text-xs font-semibold ${data.origin === "REVIEW" ? "bg-rose-400/14 text-rose-100" : "bg-emerald-400/14 text-emerald-100"}`}>
@@ -1364,11 +1388,13 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
           <input
             className="hidden"
             type="file"
-            accept=".csv,.txt"
+            accept={analysisFileAccept}
             onClick={(event) => {
               event.currentTarget.value = "";
             }}
-            onChange={(event) => event.target.files?.[0] && handleUpload(slot, event.target.files[0])}
+            onChange={(event) => {
+              if (event.target.files?.[0]) void handleUpload(slot, event.target.files[0]);
+            }}
           />
           <span className="flex items-center gap-2"><Upload size={16} /> 上传文件</span>
         </label>
@@ -1389,7 +1415,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
           </div>
           <div className="analysis-rule-grid">
             {[
-              ["格式", "CSV / TXT", "Excel / HDR 需先转文本"],
+              ["格式", "CSV / TXT / DAT / JSON / XLSX", "HDR / ENVI 需先转数值表"],
               ["模型", realModel ? "R210 v1" : "加载中", "SVM 溯源 + PLSR 糖度"],
               ["质检", "覆盖率 86%", "不足则进入复检"],
             ].map(([label, value, note]) => (
@@ -1577,7 +1603,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
           </div>
           <div className="grid gap-3">
             {[
-              ["格式校验", "只解析 CSV/TXT 的数值列；xlsx、hdr 需先导出为文本数值表。"],
+              ["格式校验", "解析 CSV/TXT/DAT/JSON/XLSX 的数值列；HDR/ENVI 需先导出为数值表。"],
               ["产地判断", "R210 光谱走真实 SVM RFE20 模型；覆盖不足或边界距离偏低时进入复检。"],
               ["糖度预测", "R210 光谱走真实 SG二阶+SNV+RFE30+PLSR 模型；酸度、糖酸比和 VC 优先使用上传实测列。"],
               ["复检触发", "R210 覆盖率不足、低置信度、缺少理化字段或指标低于阈值时，不输出高等级结论。"],

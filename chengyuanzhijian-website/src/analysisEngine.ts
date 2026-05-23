@@ -1,5 +1,6 @@
 import { analyzeRealR210Spectrum, type RealAnalysisModelArtifact, type RealAnalysisResult } from "./realAnalysis";
 import { realSpectrumCM, realSpectrumQZ, realSpectrumWavelengths } from "./realSpectrumSamples";
+import { parseSpectrumValues } from "./spectrumParser";
 
 export type AnalysisOrigin = "CM" | "QZ" | "REVIEW";
 export type AnalysisMode = "single" | "compare";
@@ -66,23 +67,7 @@ export const analysisProgressSteps = [
 ];
 
 export function parseAnalysisSpectrum(text: string) {
-  const lines = text
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const values: number[] = [];
-
-  for (const line of lines) {
-    if (/wavelength|reflectance|band|波长|反射率|编号|sample/i.test(line)) continue;
-    const numeric = line
-      .split(/,|\t|;/)
-      .map((part) => Number(part.trim()))
-      .filter(Number.isFinite);
-    if (numeric.length) values.push(numeric[numeric.length - 1]);
-  }
-
-  return values.slice(0, 260);
+  return parseSpectrumValues(text, 260);
 }
 
 export function parseAnalysisMetrics(text: string) {

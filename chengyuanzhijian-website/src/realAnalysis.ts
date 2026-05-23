@@ -1,3 +1,5 @@
+import { parseSpectrumPoints, parseSpectrumValues, spectrumValuesToPoints, type SpectrumPoint } from "./spectrumParser";
+
 export type RealOrigin = "CM" | "QZ" | "REVIEW";
 
 type SvmModel = {
@@ -74,11 +76,6 @@ export type RealAnalysisResult = {
   modelReady: boolean;
 };
 
-type SpectrumPoint = {
-  wavelength: number;
-  reflectance: number;
-};
-
 let modelPromise: Promise<RealAnalysisModelArtifact | null> | null = null;
 
 export function loadRealAnalysisModel() {
@@ -94,7 +91,13 @@ export function loadRealAnalysisModel() {
 }
 
 export function analyzeRealR210Spectrum(text: string, artifact: RealAnalysisModelArtifact): RealAnalysisResult {
-  const points = parseSpectrumPoints(text);
+  let points = parseSpectrumPoints(text);
+  if (points.length < artifact.qualityRules.minValidBands) {
+    const vector = parseSpectrumValues(text, artifact.wavelengths.length);
+    if (vector.length >= artifact.qualityRules.minValidBands) {
+      points = spectrumValuesToPoints(vector, artifact.wavelengths);
+    }
+  }
   const modelRange: [number, number] = [artifact.trainingSet.wavelengthMin, artifact.trainingSet.wavelengthMax];
   const qcIssues: string[] = [];
   const qcWarnings: string[] = [];
@@ -172,51 +175,6 @@ export function analyzeRealR210Spectrum(text: string, artifact: RealAnalysisMode
     qcWarnings,
     modelReady: true,
   };
-}
-
-function parseSpectrumPoints(text: string): SpectrumPoint[] {
-  const lines = text
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (lines.length < 2) return [];
-
-  const cleanCell = (part: string) => part.trim().replace(/^"|"$/g, "");
-  const split = (line: string) => line.split(/,|\t|;/).map(cleanCell);
-  const headers = split(lines[0]).map((header) => header.toLowerCase());
-  const wavelengthIndex = headers.findIndex((header) => /wavelength|wave|band|波长/.test(header));
-  const reflectanceIndex = headers.findIndex((header) => /reflectance|反射率|intensity|value/.test(header));
-  const pointsByWavelength = new Map<number, number[]>();
-
-  for (const line of lines.slice(1)) {
-    const columns = split(line);
-    const numeric = columns.map((part) => Number(part));
-    let wavelength: number;
-    let reflectance: number;
-
-    if (wavelengthIndex >= 0 && reflectanceIndex >= 0) {
-      wavelength = numeric[wavelengthIndex];
-      reflectance = numeric[reflectanceIndex];
-    } else {
-      const values = numeric.filter(Number.isFinite);
-      if (values.length < 2) continue;
-      wavelength = values[values.length - 2];
-      reflectance = values[values.length - 1];
-    }
-
-    if (!Number.isFinite(wavelength) || !Number.isFinite(reflectance)) continue;
-    const list = pointsByWavelength.get(wavelength) ?? [];
-    list.push(reflectance);
-    pointsByWavelength.set(wavelength, list);
-  }
-
-  return Array.from(pointsByWavelength.entries())
-    .map(([wavelength, values]) => ({
-      wavelength,
-      reflectance: values.reduce((sum, value) => sum + value, 0) / values.length,
-    }))
-    .sort((a, b) => a.wavelength - b.wavelength);
 }
 
 function resampleToModelWavelengths(points: SpectrumPoint[], targetWavelengths: number[]) {

@@ -77,6 +77,14 @@ const analysisFileExtensions = ["csv", "txt", "dat", "json", "xlsx"] as const;
 const analysisFileAccept = ".csv,.txt,.dat,.json,.xlsx";
 
 type TabId = "home" | "origins" | "grading" | "policy" | "analysis" | "dashboard" | "model";
+type AnalysisUiMode = AnalysisMode | "batch";
+
+type BatchAnalysisItem = {
+  id: string;
+  fileName: string;
+  slot: AnalysisSlot;
+  metrics: AnalysisMetrics;
+};
 
 type TabConfig = {
   id: TabId;
@@ -1047,12 +1055,13 @@ function Workspace({ tab }: { tab: TabConfig }) {
 }
 
 function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
-  const [mode, setMode] = useState<AnalysisMode>("single");
+  const [mode, setMode] = useState<AnalysisUiMode>("single");
   const [step, setStep] = useState<AnalysisStep>("upload");
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState(analysisProgressSteps[0]);
   const [slotA, setSlotA] = useState<AnalysisSlot>(emptyAnalysisSlot);
   const [slotB, setSlotB] = useState<AnalysisSlot>(emptyAnalysisSlot);
+  const [batchItems, setBatchItems] = useState<BatchAnalysisItem[]>([]);
   const [reportText, setReportText] = useState("");
   const [aiSummary, setAiSummary] = useState("");
   const [aiSummaryState, setAiSummaryState] = useState<"idle" | "local" | "loading" | "ready" | "error">("idle");
@@ -1061,7 +1070,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
   const progressTimerRef = useRef<number | null>(null);
   const analysisRunIdRef = useRef(0);
 
-  const canAnalyze = mode === "single" ? Boolean(slotA.spectrum) : Boolean(slotA.spectrum && slotB.spectrum);
+  const canAnalyze = mode === "batch" ? batchItems.length > 0 : mode === "single" ? Boolean(slotA.spectrum) : Boolean(slotA.spectrum && slotB.spectrum);
   const metricsA = metricsForAnalysis(slotA.origin, slotA);
   const metricsB = metricsForAnalysis(slotB.origin, slotB);
   const spectrumA = slotA.spectrum ?? analysisSpectrumCM;
@@ -1071,6 +1080,8 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
       ? realModel.wavelengths.map((wavelength) => Math.round(wavelength))
       : analysisWavelengths;
   const hasResult = step === "done";
+  const displayedSpectrumA = hasResult ? spectrumA : [];
+  const displayedSpectrumB = hasResult ? spectrumB : [];
   const aiEndpointConfigured = Boolean(import.meta.env.VITE_AI_REPORT_ENDPOINT);
   const resultMetrics = metricsA;
   const compareResultCards: Array<{ label: string; metrics: AnalysisMetrics; tone: string }> = [
@@ -1086,12 +1097,12 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     ...(hasMetricValue(metrics.vc) ? [["VC", metrics.vc.toFixed(2)]] : []),
   ];
   const singleResultRows = [
-    ["置信度", resultMetrics.confidence ? `${resultMetrics.confidence.toFixed(1)}%` : "不足"],
+    ["置信度", hasResult && resultMetrics.confidence ? `${resultMetrics.confidence.toFixed(1)}%` : "-"],
     ["等级", hasResult ? resultMetrics.grade : "-"],
-    ["SSC", resultMetrics.qualityReady ? resultMetrics.ssc.toFixed(2) : "缺失"],
-    ...(hasMetricValue(resultMetrics.ta) ? [["TA", resultMetrics.ta.toFixed(3)]] : []),
-    ...(hasMetricValue(resultMetrics.ratio) ? [["糖酸比", resultMetrics.ratio.toFixed(2)]] : []),
-    ...(hasMetricValue(resultMetrics.vc) ? [["VC", resultMetrics.vc.toFixed(2)]] : []),
+    ["SSC", hasResult && resultMetrics.qualityReady ? resultMetrics.ssc.toFixed(2) : "-"],
+    ...(hasResult && hasMetricValue(resultMetrics.ta) ? [["TA", resultMetrics.ta.toFixed(3)]] : []),
+    ...(hasResult && hasMetricValue(resultMetrics.ratio) ? [["糖酸比", resultMetrics.ratio.toFixed(2)]] : []),
+    ...(hasResult && hasMetricValue(resultMetrics.vc) ? [["VC", resultMetrics.vc.toFixed(2)]] : []),
   ];
   const formatDelta = (value: number) => `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
   const compareSummaryRows = [
@@ -1116,13 +1127,53 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
       ? "上传文件未包含 TA、糖酸比或 VC 实测列，当前只展示模型可支撑的产地与 SSC；其他指标建议补充理化检测。"
       : "";
   const compareHasReview = compareResultCards.some(({ metrics }) => metrics.grade === "待复检");
+  const batchSummary = useMemo(() => {
+    const summary = {
+      total: batchItems.length,
+      cm: 0,
+      qz: 0,
+      review: 0,
+      modelReady: 0,
+      sscCount: 0,
+      sscAverage: 0,
+      premiumCount: 0,
+      preferredCount: 0,
+      lowSugarCount: 0,
+    };
+    let sscTotal = 0;
+
+    for (const item of batchItems) {
+      if (item.slot.origin === "CM") summary.cm += 1;
+      else if (item.slot.origin === "QZ") summary.qz += 1;
+      else summary.review += 1;
+
+      if (item.slot.realResult?.modelReady) summary.modelReady += 1;
+      if (item.metrics.qualityReady && hasMetricValue(item.metrics.ssc)) {
+        summary.sscCount += 1;
+        sscTotal += item.metrics.ssc;
+        if (item.metrics.ssc >= 11.5) summary.premiumCount += 1;
+        else if (item.metrics.ssc >= 10) summary.preferredCount += 1;
+        else if (item.metrics.ssc < 8.5) summary.lowSugarCount += 1;
+      }
+    }
+
+    summary.sscAverage = summary.sscCount ? Number((sscTotal / summary.sscCount).toFixed(2)) : 0;
+    return summary;
+  }, [batchItems]);
+  const batchReviewText =
+    batchSummary.total === 0
+      ? "上传多个样本文件后，这里会给出批次汇总。"
+      : batchSummary.review
+        ? `本批次 ${batchSummary.review} 个样本需要复检，建议优先核对文件名产地标注、R210 覆盖率和糖度异常提示。`
+        : `本批次 ${batchSummary.total} 个样本均完成模型推理，平均 SSC ${batchSummary.sscAverage.toFixed(2)}。`;
   const compareReviewText =
     compareResultCards
       .map(({ label, metrics }) => (metrics.reviewReason ? `${label}：${metrics.reviewReason}` : null))
       .filter(Boolean)
       .join("；") || compareMissingText || "两个样本字段完整，产地和品质结论可以进入报告留档。";
-  const resultModelVersion = mode === "compare" ? metricsA.modelVersion ?? metricsB.modelVersion : resultMetrics.modelVersion;
-  const resultPassed = hasResult && (mode === "compare" ? !compareHasReview : resultMetrics.grade !== "待复检");
+  const resultModelVersion =
+    mode === "batch" ? batchItems.find((item) => item.metrics.modelVersion)?.metrics.modelVersion : mode === "compare" ? metricsA.modelVersion ?? metricsB.modelVersion : resultMetrics.modelVersion;
+  const resultPassed = hasResult && (mode === "batch" ? batchSummary.total > 0 && batchSummary.review === 0 : mode === "compare" ? !compareHasReview : resultMetrics.grade !== "待复检");
 
   const spectrumOption = useMemo(
     () => ({
@@ -1150,36 +1201,36 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
         mode === "single"
           ? [
               {
-                name: slotA.fileName ? "样本 A 光谱" : "示例光谱",
+                name: hasResult ? (slotA.fileName ? "样本 A 光谱" : "示例光谱") : "等待分析",
                 type: "line",
                 smooth: true,
                 symbol: "none",
-                data: spectrumA,
-                lineStyle: { width: 2.4, color: slotA.origin === "QZ" ? "#6ee7b7" : "#fb923c" },
+                data: displayedSpectrumA,
+                lineStyle: { width: 2.4, color: hasResult && slotA.origin === "QZ" ? "#6ee7b7" : "#fb923c" },
                 areaStyle: {
                   color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                    { offset: 0, color: slotA.origin === "QZ" ? "rgba(110,231,183,0.22)" : "rgba(251,146,60,0.22)" },
+                    { offset: 0, color: hasResult && slotA.origin === "QZ" ? "rgba(110,231,183,0.22)" : "rgba(251,146,60,0.22)" },
                     { offset: 1, color: "rgba(255,255,255,0)" },
                   ]),
                 },
               },
             ]
           : [
-              { name: "样本 A", type: "line", smooth: true, symbol: "none", data: spectrumA, lineStyle: { width: 2, color: "#fb923c" } },
-              { name: "样本 B", type: "line", smooth: true, symbol: "none", data: spectrumB, lineStyle: { width: 2, color: "#6ee7b7" } },
+              { name: "样本 A", type: "line", smooth: true, symbol: "none", data: displayedSpectrumA, lineStyle: { width: 2, color: "#fb923c" } },
+              { name: "样本 B", type: "line", smooth: true, symbol: "none", data: displayedSpectrumB, lineStyle: { width: 2, color: "#6ee7b7" } },
             ],
     }),
-    [mode, slotA.fileName, slotA.origin, spectrumA, spectrumB, spectrumAxis],
+    [displayedSpectrumA, displayedSpectrumB, hasResult, mode, slotA.fileName, slotA.origin, spectrumAxis],
   );
 
   const metricOption = useMemo(
     () => {
-      const items = [
+      const items = hasResult ? [
         { label: "SSC", a: metricsA.qualityReady ? metricsA.ssc : 0, b: metricsB.qualityReady ? metricsB.ssc : 0, show: metricsA.qualityReady || metricsB.qualityReady },
         { label: "TA x10", a: metricsA.ta * 10, b: metricsB.ta * 10, show: hasMetricValue(metricsA.ta) || hasMetricValue(metricsB.ta) },
         { label: "糖酸比", a: metricsA.ratio, b: metricsB.ratio, show: hasMetricValue(metricsA.ratio) || hasMetricValue(metricsB.ratio) },
         { label: "VC/10", a: metricsA.vc / 10, b: metricsB.vc / 10, show: hasMetricValue(metricsA.vc) || hasMetricValue(metricsB.vc) },
-      ].filter((item) => item.show);
+      ].filter((item) => item.show) : [];
 
       return {
         backgroundColor: "transparent",
@@ -1224,7 +1275,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
               ],
       };
     },
-    [metricsA, metricsB, mode],
+    [hasResult, metricsA, metricsB, mode],
   );
 
   const clearProgressTimer = () => {
@@ -1250,6 +1301,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     resetRunState();
     setSlotA({ ...emptyAnalysisSlot });
     setSlotB({ ...emptyAnalysisSlot });
+    setBatchItems([]);
   };
 
   useEffect(() => {
@@ -1290,6 +1342,49 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
       return XLSX.utils.sheet_to_csv(sheet);
     }
     return file.text();
+  };
+
+  const buildRejectedSlot = (fileName: string, message: string): AnalysisSlot => ({
+    fileName,
+    spectrum: null,
+    origin: "REVIEW",
+    message,
+    source: "upload",
+    qualityReady: false,
+  });
+
+  const createBatchItem = async (file: File, index: number): Promise<BatchAnalysisItem> => {
+    const ext = file.name.split(".").pop()?.toLowerCase();
+    let slot: AnalysisSlot;
+
+    if (!ext || !analysisFileExtensions.includes(ext as (typeof analysisFileExtensions)[number])) {
+      slot = buildRejectedSlot(file.name, "当前页面支持 CSV、TXT、DAT、JSON、XLSX；HDR/ENVI 需要先导出为数值表。");
+    } else {
+      try {
+        const text = await readAnalysisFile(file);
+        slot = buildUploadedAnalysisSlot(file.name, text, realModel);
+      } catch (error) {
+        slot = buildRejectedSlot(file.name, error instanceof Error ? error.message : "文件读取失败，请检查文件是否完整。");
+      }
+    }
+
+    return {
+      id: `${file.name}-${file.lastModified}-${index}`,
+      fileName: file.name,
+      slot,
+      metrics: metricsForAnalysis(slot.origin, slot),
+    };
+  };
+
+  const handleBatchUpload = async (files: FileList | File[]) => {
+    const selectedFiles = Array.from(files);
+    if (!selectedFiles.length) return;
+
+    const items = await Promise.all(selectedFiles.map((file, index) => createBatchItem(file, index)));
+    setBatchItems(items);
+    setSlotA(items[0]?.slot ?? { ...emptyAnalysisSlot });
+    setSlotB({ ...emptyAnalysisSlot });
+    resetRunState();
   };
 
   const handleUpload = async (slot: "A" | "B", file: File) => {
@@ -1338,6 +1433,42 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     }
   };
 
+  const buildBatchReport = () => {
+    const lines = [
+      "# 橙源智鉴批量检测报告",
+      "",
+      `样本数量：${batchSummary.total}`,
+      `模型通过：${batchSummary.modelReady}`,
+      `澄迈：${batchSummary.cm}`,
+      `琼中：${batchSummary.qz}`,
+      `待复检：${batchSummary.review}`,
+      `平均 SSC：${batchSummary.sscCount ? batchSummary.sscAverage.toFixed(2) : "缺失"}`,
+      "",
+      "| 文件 | 产地 | 置信度 | SSC | 等级 | 状态 |",
+      "|---|---:|---:|---:|---:|---|",
+    ];
+
+    for (const item of batchItems) {
+      const status = item.slot.origin === "REVIEW" ? item.metrics.reviewReason ?? item.slot.message ?? "待复检" : "通过";
+      lines.push(
+        `| ${item.fileName} | ${item.metrics.originName} | ${item.metrics.confidence ? `${item.metrics.confidence.toFixed(1)}%` : "不足"} | ${
+          item.metrics.qualityReady ? item.metrics.ssc.toFixed(2) : "缺失"
+        } | ${item.metrics.grade} | ${status.replace(/\|/g, "/")} |`,
+      );
+    }
+
+    const reviewItems = batchItems.filter((item) => item.slot.origin === "REVIEW");
+    if (reviewItems.length) {
+      lines.push("", "## 复检清单");
+      for (const item of reviewItems) {
+        lines.push(`- ${item.fileName}：${item.metrics.reviewReason ?? item.slot.message ?? "建议复检确认"}`);
+      }
+    }
+
+    lines.push("", "说明：批量模式与单样本分析使用同一套 R210 本地模型和质检规则；上传文件缺少 TA、糖酸比或 VC 时，批量表优先展示模型可支撑的产地与 SSC。");
+    return lines.join("\n");
+  };
+
   const startAnalysis = () => {
     if (!canAnalyze || step === "running") return;
     clearProgressTimer();
@@ -1361,7 +1492,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
           clearProgressTimer();
           if (analysisRunIdRef.current === runId) {
             setStep("done");
-            setReportText(buildAnalysisReport(mode, metricsA, mode === "compare" ? metricsB : undefined));
+            setReportText(mode === "batch" ? buildBatchReport() : buildAnalysisReport(mode, metricsA, mode === "compare" ? metricsB : undefined));
             setAiSummary("");
             setAiSummaryState("idle");
             setAiSummaryError("");
@@ -1379,13 +1510,13 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "chengyuan-analysis-report.md";
+    link.download = mode === "batch" ? "chengyuan-batch-analysis-report.md" : "chengyuan-analysis-report.md";
     link.click();
     URL.revokeObjectURL(url);
   };
 
   const summarizeReport = async () => {
-    if (!hasResult || !reportText || aiSummaryState === "loading") return;
+    if (!hasResult || !reportText || aiSummaryState === "loading" || mode === "batch") return;
     const payload = {
       mode,
       reportText,
@@ -1413,16 +1544,126 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     }
   };
 
+  const originLabel = (origin: AnalysisOrigin) => (origin === "CM" ? "澄迈" : origin === "QZ" ? "琼中" : "复检");
+  const batchKpis = [
+    ["样本", `${batchSummary.total}`],
+    ["模型通过", hasResult ? `${batchSummary.modelReady}` : "-"],
+    ["澄迈 / 琼中", hasResult ? `${batchSummary.cm} / ${batchSummary.qz}` : "-"],
+    ["待复检", hasResult ? `${batchSummary.review}` : "-"],
+    ["平均 SSC", hasResult && batchSummary.sscCount ? batchSummary.sscAverage.toFixed(2) : "-"],
+    ["低糖提示", hasResult ? `${batchSummary.lowSugarCount}` : "-"],
+  ];
+
+  const renderBatchWorkspace = () => (
+    <div className="grid gap-5">
+      <article className="analysis-panel rounded-[22px] p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="text-xs font-bold tracking-[0.18em] text-orange-200/72">BATCH INPUT</div>
+            <h3 className="mt-2 text-xl font-semibold text-white">批量上传检测</h3>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/58">
+              一次选择多份 CSV、TXT、DAT、JSON 或 XLSX，每个文件独立解析、独立质检；失败或冲突样本会留在表格里，不影响整批结果。
+            </p>
+          </div>
+          <label className="analysis-primary cursor-pointer rounded-full px-5 py-2.5 text-sm font-semibold text-black">
+            <input
+              className="hidden"
+              type="file"
+              multiple
+              accept={analysisFileAccept}
+              onClick={(event) => {
+                event.currentTarget.value = "";
+              }}
+              onChange={(event) => {
+                if (event.target.files?.length) void handleBatchUpload(event.target.files);
+              }}
+            />
+            <span className="flex items-center gap-2"><Upload size={16} /> 选择文件</span>
+          </label>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          {batchKpis.map(([label, value]) => (
+            <div key={label} className="analysis-kpi rounded-2xl p-4">
+              <div className="text-xs text-white/46">{label}</div>
+              <div className="mt-1 text-xl font-semibold text-white">{value}</div>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article className="analysis-panel rounded-[22px] p-5">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-white">批量结果表</h3>
+            <p className="mt-1 text-xs text-white/48">上传后先建立文件队列；点击“开始分析”并完成进度后，表格才显示正式模型结论。</p>
+          </div>
+          <div className="text-xs font-semibold text-white/50">{batchItems.length ? `${batchItems.length} 个文件已载入` : "等待文件"}</div>
+        </div>
+
+        {batchItems.length ? (
+          <div className="batch-table-wrap">
+            <table className="batch-table">
+              <thead>
+                <tr>
+                  <th>文件</th>
+                  <th>产地</th>
+                  <th>SSC</th>
+                  <th>置信度</th>
+                  <th>波段</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                {batchItems.map((item) => {
+                  const isReview = item.slot.origin === "REVIEW";
+                  const status = !hasResult ? "待分析" : item.slot.realResult?.modelReady ? (isReview ? "冲突复检" : "通过") : "待复检";
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="max-w-[260px] truncate font-semibold text-white">{item.fileName}</div>
+                        <div className="mt-1 line-clamp-2 text-xs leading-5 text-white/42">{hasResult ? item.slot.message ?? item.metrics.reviewReason ?? "已读取文件" : "文件已读取，等待开始分析。"}</div>
+                      </td>
+                      <td>
+                        <span className={`batch-pill ${!hasResult ? "" : isReview ? "batch-pill-review" : item.slot.origin === "QZ" ? "batch-pill-qz" : "batch-pill-cm"}`}>{hasResult ? originLabel(item.slot.origin) : "待分析"}</span>
+                      </td>
+                      <td>{hasResult && item.metrics.qualityReady ? item.metrics.ssc.toFixed(2) : "-"}</td>
+                      <td>{hasResult && item.metrics.confidence ? `${item.metrics.confidence.toFixed(1)}%` : "-"}</td>
+                      <td>{hasResult ? item.slot.realResult?.validBands ?? item.slot.spectrum?.length ?? "-" : "-"}</td>
+                      <td>
+                        <span className={`batch-status ${!hasResult ? "batch-status-pending" : isReview ? "batch-status-review" : "batch-status-pass"}`}>{status}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-white/14 bg-white/5 p-8 text-center text-sm leading-7 text-white/54">
+            还没有批量文件。可以直接选中微信目录里的 20 个样本，一次上传查看整批结果。
+          </div>
+        )}
+      </article>
+    </div>
+  );
+
   const renderSlot = (slot: "A" | "B", data: AnalysisSlot) => (
     <article className="analysis-slot rounded-[22px] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-xs font-bold tracking-[0.18em] text-orange-200/72">SAMPLE {slot}</div>
           <h3 className="mt-2 text-lg font-semibold text-white">{data.fileName ?? "等待光谱文件"}</h3>
-          <p className="mt-2 text-sm leading-6 text-white/58">{data.message ?? "可上传本地光谱表，也可以先载入示例样本验证完整流程。"}</p>
+          <p className="mt-2 text-sm leading-6 text-white/58">
+            {data.fileName && !hasResult
+              ? data.source === "sample"
+                ? "示例样本已载入，点击开始分析后输出正式结论和报告。"
+                : "文件已读取并完成格式检查，点击开始分析后输出模型结论和报告。"
+              : data.message ?? "可上传本地光谱表，也可以先载入示例样本验证完整流程。"}
+          </p>
         </div>
-        <div className={`rounded-full px-3 py-1 text-xs font-semibold ${data.origin === "REVIEW" ? "bg-rose-400/14 text-rose-100" : "bg-emerald-400/14 text-emerald-100"}`}>
-          {data.origin === "CM" ? "澄迈" : data.origin === "QZ" ? "琼中" : "复检"}
+        <div className={`rounded-full px-3 py-1 text-xs font-semibold ${!hasResult ? "bg-white/10 text-white/62" : data.origin === "REVIEW" ? "bg-rose-400/14 text-rose-100" : "bg-emerald-400/14 text-emerald-100"}`}>
+          {!hasResult ? "待分析" : data.origin === "CM" ? "澄迈" : data.origin === "QZ" ? "琼中" : "复检"}
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
@@ -1477,12 +1718,13 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
             {[
               ["single", "单样本"],
               ["compare", "双样本对比"],
+              ["batch", "批量检测"],
             ].map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => {
                   if (mode === key) return;
-                  setMode(key as AnalysisMode);
+                  setMode(key as AnalysisUiMode);
                   resetAnalysis();
                 }}
                 className={`rounded-full px-4 py-2 text-sm font-semibold transition ${mode === key ? "bg-white text-black" : "text-white/62 hover:text-white"}`}
@@ -1508,6 +1750,10 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
 
         <div className="grid gap-5 xl:grid-cols-[1.35fr_0.85fr]">
           <div className="grid gap-5">
+            {mode === "batch" ? (
+              renderBatchWorkspace()
+            ) : (
+              <>
             <div className={`grid gap-4 ${mode === "compare" ? "lg:grid-cols-2" : ""}`}>
               {renderSlot("A", slotA)}
               {mode === "compare" && renderSlot("B", slotB)}
@@ -1539,18 +1785,43 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
                 </div>
               </article>
             </div>
+              </>
+            )}
           </div>
 
           <aside className="analysis-result rounded-[24px] p-5">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold tracking-[0.18em] text-white/42">RESULT</div>
-                <h3 className="mt-2 text-2xl font-semibold text-white">{hasResult ? (mode === "compare" ? "双样本对比" : resultMetrics.originName) : "等待分析"}</h3>
+                <h3 className="mt-2 text-2xl font-semibold text-white">{hasResult ? (mode === "batch" ? "批量检测" : mode === "compare" ? "双样本对比" : resultMetrics.originName) : "等待分析"}</h3>
               </div>
               {resultPassed ? <CheckCircle2 className="text-emerald-200" size={30} /> : <AlertCircle className="text-orange-200" size={30} />}
             </div>
 
-            {mode === "compare" && hasResult ? (
+            {mode === "batch" ? (
+              <div className="mt-5 grid gap-3">
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    ["文件数", batchSummary.total],
+                    ["模型通过", hasResult ? batchSummary.modelReady : "-"],
+                    ["澄迈", hasResult ? batchSummary.cm : "-"],
+                    ["琼中", hasResult ? batchSummary.qz : "-"],
+                    ["待复检", hasResult ? batchSummary.review : "-"],
+                    ["平均 SSC", hasResult && batchSummary.sscCount ? batchSummary.sscAverage.toFixed(2) : "-"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="analysis-kpi rounded-2xl p-4">
+                      <div className="text-xs text-white/46">{label}</div>
+                      <div className="mt-1 text-xl font-semibold text-white">{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {batchItems.length ? (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-7 text-white/62">
+                    {hasResult ? batchReviewText : `已载入 ${batchItems.length} 个文件。点击开始分析后生成正式批量结论和报告。`}
+                  </div>
+                ) : null}
+              </div>
+            ) : mode === "compare" && hasResult ? (
               <div className="mt-5 grid gap-3">
                 {compareResultCards.map(({ label, metrics, tone }) => (
                   <div key={label} className={`rounded-2xl border p-4 ${tone}`}>
@@ -1603,7 +1874,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
               </div>
             ) : (
               <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-7 text-white/62">
-                {hasResult ? (mode === "compare" ? compareReviewText : resultMetrics.reviewReason ?? (singleMissingText || "样本字段完整，产地和品质结论可以进入报告留档。")) : "上传样本后按钮才会启用；也可以载入示例样本查看工作台效果。"}
+                {hasResult ? (mode === "batch" ? batchReviewText : mode === "compare" ? compareReviewText : resultMetrics.reviewReason ?? (singleMissingText || "样本字段完整，产地和品质结论可以进入报告留档。")) : "上传样本后按钮才会启用；也可以载入示例样本查看工作台效果。"}
                 {hasResult && resultModelVersion ? (
                   <div className="mt-3 border-t border-white/10 pt-3 text-xs leading-6 text-white/46">
                     模型版本：{resultModelVersion}
@@ -1682,7 +1953,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
               </div>
               <button
                 className="analysis-action rounded-full px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45"
-                disabled={!hasResult || !reportText || aiSummaryState === "loading"}
+                disabled={!hasResult || !reportText || aiSummaryState === "loading" || mode === "batch"}
                 onClick={summarizeReport}
               >
                 {aiSummaryState === "loading" ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}

@@ -91,7 +91,19 @@ export function loadRealAnalysisModel() {
 }
 
 export function analyzeRealR210Spectrum(text: string, artifact: RealAnalysisModelArtifact): RealAnalysisResult {
-  let points = parseSpectrumPoints(text);
+  const normalizedText = text.replace(/^\uFEFF/, "").trim();
+  let points: SpectrumPoint[] = [];
+  if (/^[\[{]/.test(normalizedText)) {
+    const vector = parseSpectrumValues(text, artifact.wavelengths.length);
+    if (vector.length >= artifact.qualityRules.minValidBands) {
+      points = spectrumValuesToPoints(vector, artifact.wavelengths);
+    }
+  }
+
+  if (!points.length) {
+    points = parseSpectrumPoints(text);
+  }
+
   if (points.length < artifact.qualityRules.minValidBands) {
     const vector = parseSpectrumValues(text, artifact.wavelengths.length);
     if (vector.length >= artifact.qualityRules.minValidBands) {

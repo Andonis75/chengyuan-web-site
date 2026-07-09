@@ -77,6 +77,7 @@ const wideCsv = [
   ["QZ", "QZ-122", ...wideVector, 193, 192].join(","),
 ].join("\n");
 const jsonVector = JSON.stringify({ case_type: "QZ", sample_id: "QZ-63", spectrum: wideVector });
+const jsonVectorWithTail = JSON.stringify({ case_type: "QZ", sample_id: "QZ-63", spectrum: [...wideVector, 120, 121, 122] });
 const datVector = wideVector.join(",");
 const artifact = JSON.parse(await readFile(resolve(root, "public/model-artifacts/orange-real-analysis-v1.json"), "utf8"));
 
@@ -87,6 +88,10 @@ assert.equal(parseAnalysisSpectrum(datVector).length, 228, "DAT/TXT 向量应可
 const wideSlot = buildUploadedAnalysisSlot("uploaded-wide-spectrum.csv", wideCsv, artifact);
 assert.equal(wideSlot.spectrum?.length, 228, "宽表 CSV 上传后应保留 228 个光谱点");
 assert.equal(wideSlot.realResult?.modelReady, true, "宽表 CSV 应能进入真实 R210 模型");
+const jsonTailSlot = buildUploadedAnalysisSlot("uploaded-json-tail-spectrum.json", jsonVectorWithTail, artifact);
+assert.equal(jsonTailSlot.spectrum?.length, 228, "JSON spectrum should keep the R210 vector length");
+assert.equal(jsonTailSlot.realResult?.validBands, 228, "JSON spectrum should not be treated as text-derived point rows");
+assert.equal(jsonTailSlot.realResult?.modelReady, true, "JSON spectrum with appended values should still enter the R210 model");
 const wideMetrics = metricsForAnalysis(wideSlot.origin, wideSlot);
 const wideReport = buildAnalysisReport("single", wideMetrics);
 assert.doesNotMatch(wideReport, /未实测/, "上传光谱缺少理化列时，报告不应输出未实测占位项");

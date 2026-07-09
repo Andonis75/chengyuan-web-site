@@ -14,7 +14,7 @@ export type AiReportResult = {
 
 export async function requestAiReportSummary(payload: AiReportPayload, endpoint = import.meta.env.VITE_AI_REPORT_ENDPOINT) {
   if (!endpoint) {
-    throw new Error("AI 报告代理未配置。请先部署后端代理，并设置 VITE_AI_REPORT_ENDPOINT。");
+    throw new Error("在线总结服务暂不可用。");
   }
 
   const response = await fetch(endpoint, {
@@ -26,12 +26,12 @@ export async function requestAiReportSummary(payload: AiReportPayload, endpoint 
   });
 
   if (!response.ok) {
-    throw new Error(`AI 报告代理返回 ${response.status}`);
+    throw new Error("在线总结服务暂不可用。");
   }
 
   const data = (await response.json()) as Partial<AiReportResult>;
   if (!data.summary) {
-    throw new Error("AI 报告代理没有返回 summary 字段。");
+    throw new Error("在线总结服务暂不可用。");
   }
 
   return {
@@ -50,10 +50,7 @@ export function buildLocalAiReportSummary(payload: AiReportPayload) {
       `SSC ${sample.qualityReady ? sample.ssc.toFixed(2) : "缺失"}`,
       ...(hasMeasuredMetric(sample.ratio) ? [`糖酸比 ${sample.ratio.toFixed(2)}`] : []),
     ].join("，") + "。";
-  const lines = [
-    "本地多维总结",
-    sampleLine("样本 A", sampleA),
-  ];
+  const lines = ["智能多维总结", sampleLine("样本 A", sampleA)];
 
   if (mode === "compare" && sampleB) {
     const sscDelta = sampleB.ssc - sampleA.ssc;
@@ -69,6 +66,6 @@ export function buildLocalAiReportSummary(payload: AiReportPayload) {
 
   const warnings = [sampleA.reviewReason, sampleB?.reviewReason].filter(Boolean);
   lines.push(warnings.length ? `复核关注：${warnings.join("；")}` : "复核关注：当前字段较完整，可进入报告留档。");
-  lines.push("DeepSeek 接入后，这里会由后端代理生成更细的口感、质检、溯源和经营建议总结。");
+  lines.push("综合建议：建议结合采收批次、糖酸比和复核字段进入报告留档。");
   return lines.join("\n");
 }

@@ -1527,7 +1527,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     if (!aiEndpointConfigured) {
       setAiSummary(buildLocalAiReportSummary(payload));
       setAiSummaryState("local");
-      setAiSummaryError("DeepSeek 代理未配置，当前显示本地规则总结。");
+      setAiSummaryError("");
       return;
     }
 
@@ -1540,7 +1540,7 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
     } catch (error) {
       setAiSummary(buildLocalAiReportSummary(payload));
       setAiSummaryState("error");
-      setAiSummaryError(error instanceof Error ? error.message : "AI 总结失败，已切换本地规则总结。");
+      setAiSummaryError("在线总结暂不可用，已为当前样本生成本地智能总结。");
     }
   };
 
@@ -1945,10 +1945,10 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-white">
                   <BrainCircuit size={17} />
-                  DeepSeek 多维总结
+                  智能多维总结
                 </div>
                 <p className="mt-1 text-xs leading-5 text-white/48">
-                  {aiEndpointConfigured ? "已配置 AI 代理，点击后生成产地、品质、风险和经营建议。" : "静态站不保存密钥；配置后端代理后可切换为 DeepSeek 总结。"}
+                  基于当前分析结果生成产地、品质、风险和经营建议摘要。
                 </p>
               </div>
               <button
@@ -1957,11 +1957,11 @@ function AnalysisWorkspace({ tab }: { tab: TabConfig }) {
                 onClick={summarizeReport}
               >
                 {aiSummaryState === "loading" ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                {aiEndpointConfigured ? "生成 AI 总结" : "生成本地总结"}
+                生成智能总结
               </button>
             </div>
             <pre className="ai-report-output mt-3 rounded-xl p-3 text-sm leading-7 text-white/68">
-              {aiSummary || "完成分析后，可在这里生成多方位总结。后续 DeepSeek 密钥只放在后端代理环境变量里。"}
+              {aiSummary || "完成分析后，可在这里生成多方位总结。"}
             </pre>
             {aiSummaryError ? <div className="mt-2 text-xs leading-5 text-orange-100/72">{aiSummaryError}</div> : null}
           </div>
